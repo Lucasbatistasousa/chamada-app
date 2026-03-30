@@ -1,0 +1,212 @@
+{% extends "base.html" %}
+{% block title %}Histórico — Chamada Digital{% endblock %}
+
+{% block head %}
+<style>
+  .turma-tab {
+    padding: 0.5rem 1.125rem;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 0.875rem;
+    font-weight: 600;
+    border: 1.5px solid var(--border);
+    background: #fff;
+    transition: all 0.15s;
+    white-space: nowrap;
+  }
+  .turma-tab.active { background: var(--ink); color: #fff; border-color: var(--ink); }
+  .chamada-item {
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: #fff;
+    margin-bottom: 0.75rem;
+    overflow: hidden;
+  }
+  .chamada-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0.875rem 1.25rem;
+    cursor: pointer;
+  }
+  .chamada-header:hover { background: var(--cream); }
+  .chamada-body {
+    display: none;
+    padding: 0 1.25rem 1rem;
+    border-top: 1px solid var(--border);
+  }
+  .chamada-body.open { display: block; }
+  .presenca-linha {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0.45rem 0;
+    border-bottom: 1px solid #f0ece3;
+    font-size: 0.9rem;
+  }
+  .presenca-linha:last-child { border-bottom: none; }
+  #graficos { display: flex; gap: 1rem; flex-wrap: wrap; margin-bottom: 1.5rem; }
+  .grafico-card {
+    flex: 1; min-width: 200px;
+    background: #fff; border: 1px solid var(--border);
+    border-radius: 10px; padding: 1rem 1.25rem;
+  }
+  .grafico-bar { height: 8px; background: var(--cream); border-radius: 99px; margin-top: 0.5rem; overflow: hidden; }
+  .grafico-fill { height: 100%; background: var(--green); border-radius: 99px; transition: width 0.4s; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page">
+  <div class="page-header flex items-center justify-between">
+    <div>
+      <h1 class="page-title">Histórico</h1>
+      <p class="page-sub">Veja chamadas anteriores e exporte dados</p>
+    </div>
+  </div>
+
+  {% if turmas %}
+  <!-- Abas de turmas -->
+  <div style="display:flex;gap:0.5rem;flex-wrap:wrap;margin-bottom:1.5rem;" id="abas">
+    {% for turma in turmas %}
+    <button class="turma-tab" id="tab-{{ turma.id }}" onclick="selecionarTurma({{ turma.id }}, '{{ turma.nome }}')">
+      {{ turma.nome }}
+    </button>
+    {% endfor %}
+  </div>
+
+  <!-- Conteúdo -->
+  <div id="conteudo">
+    <div class="card" style="text-align:center;padding:3rem;color:var(--muted);">
+      Selecione uma turma para ver o histórico.
+    </div>
+  </div>
+
+  {% else %}
+  <div class="card" style="text-align:center;padding:3rem;color:var(--muted);">
+    <div style="font-size:2.5rem;margin-bottom:0.75rem;">📂</div>
+    <div style="font-size:1.05rem;">Nenhuma turma cadastrada.</div>
+    <a href="/" class="btn btn-primary" style="margin-top:1rem;">Criar turma</a>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let turmaAtual = null;
+
+async function selecionarTurma(id, nome) {
+  turmaAtual = id;
+  document.querySelectorAll('.turma-tab').forEach(t => t.classList.remove('active'));
+  document.getElementById(`tab-${id}`).classList.add('active');
+
+  document.getElementById('conteudo').innerHTML = '<div style="text-align:center;padding:2rem;color:var(--muted);">Carregando...</div>';
+
+  const r = await fetch(`/historico/${id}`);
+  const data = await r.json();
+  renderHistorico(data, nome);
+}
+
+function renderHistorico(data, nome) {
+  const { chamadas } = data;
+
+  if (chamadas.length === 0) {
+    document.getElementById('conteudo').innerHTML = `
+      <div class="card" style="text-align:center;padding:3rem;color:var(--muted);">
+        <div style="font-size:2rem;margin-bottom:0.5rem;">📋</div>
+        Nenhuma chamada registrada para esta turma ainda.
+      </div>`;
+    return;
+  }
+
+  // Calcula média geral
+  const mediaGeral = chamadas.reduce((acc, c) => {
+    return acc + (c.total > 0 ? c.presentes / c.total : 0);
+  }, 0) / chamadas.length;
+
+  // Frequência por aluno
+  const freq = {};
+  chamadas.forEach(c => {
+    c.presencas.forEach(p => {
+      if (!freq[p.nome]) freq[p.nome] = { presentes: 0, total: 0 };
+      freq[p.nome].total++;
+      if (p.presente) freq[p.nome].presentes++;
+    });
+  });
+
+  const top = Object.entries(freq)
+    .map(([nome, v]) => ({ nome, pct: v.total > 0 ? v.presentes / v.total : 0, ...v }))
+    .sort((a, b) => a.pct - b.pct);
+
+  const menorFreq = top[0];
+  const maiorFreq = top[top.length - 1];
+
+  let html = `
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;">
+      <div style="font-weight:600;">${chamadas.length} chamada${chamadas.length > 1 ? 's' : ''} registrada${chamadas.length > 1 ? 's' : ''}</div>
+      <a href="/exportar/${turmaAtual}" class="btn btn-ghost btn-sm">⬇ Exportar CSV</a>
+    </div>
+
+    <div id="graficos">
+      <div class="grafico-card">
+        <div style="font-size:0.75rem;text-transform:uppercase;letter-spacing:0.05em;color:var(--muted);font-weight:700;">Média de presença</div>
+        <div style="font-family:'DM Serif Display',serif;font-size:2rem;">${Math.round(mediaGeral * 100)}%</div>
+        <div class="grafico-bar"><div class="grafico-fill" style="width:${Math.round(mediaGeral*100)}%"></div></div>
+      </div>
+      ${menorFreq ? `
+      <div class="grafico-card">
+        <div style="font-size:0.75rem;text-transform:uppercase;letter-spacing:0.05em;color:var(--muted);font-weight:700;">Menor frequência</div>
+        <div style="font-family:'DM Serif Display',serif;font-size:1.25rem;margin-top:0.25rem;">${menorFreq.nome}</div>
+        <div style="color:var(--red);font-size:0.9rem;margin-top:0.2rem;">${Math.round(menorFreq.pct*100)}% de presença</div>
+      </div>` : ''}
+      ${maiorFreq && maiorFreq !== menorFreq ? `
+      <div class="grafico-card">
+        <div style="font-size:0.75rem;text-transform:uppercase;letter-spacing:0.05em;color:var(--muted);font-weight:700;">Maior frequência</div>
+        <div style="font-family:'DM Serif Display',serif;font-size:1.25rem;margin-top:0.25rem;">${maiorFreq.nome}</div>
+        <div style="color:var(--green);font-size:0.9rem;margin-top:0.2rem;">${Math.round(maiorFreq.pct*100)}% de presença</div>
+      </div>` : ''}
+    </div>
+
+    <div>
+      ${chamadas.map((c, i) => {
+        const pct = c.total > 0 ? Math.round(c.presentes / c.total * 100) : 0;
+        const [ano, mes, dia] = c.data.split('-');
+        const dataFmt = `${dia}/${mes}/${ano}`;
+        return `
+          <div class="chamada-item">
+            <div class="chamada-header" onclick="toggleChamada(${i})">
+              <div>
+                <div style="font-weight:600;">${dataFmt}</div>
+                <div style="font-size:0.8125rem;color:var(--muted);margin-top:2px;">
+                  ${c.presentes} de ${c.total} presentes
+                </div>
+              </div>
+              <div style="display:flex;align-items:center;gap:0.75rem;">
+                <span class="badge ${pct >= 75 ? 'badge-green' : pct >= 50 ? 'badge-gray' : 'badge-red'}">${pct}%</span>
+                <span id="chevron-${i}" style="color:var(--muted);transition:transform 0.2s;">▼</span>
+              </div>
+            </div>
+            <div class="chamada-body" id="body-${i}">
+              <div style="padding-top:0.75rem;">
+                ${c.presencas.map(p => `
+                  <div class="presenca-linha">
+                    <span>${p.nome}</span>
+                    <span class="badge ${p.presente ? 'badge-green' : 'badge-red'}">${p.presente ? 'Presente' : 'Falta'}</span>
+                  </div>
+                `).join('')}
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('')}
+    </div>
+  `;
+
+  document.getElementById('conteudo').innerHTML = html;
+}
+
+function toggleChamada(i) {
+  const body = document.getElementById(`body-${i}`);
+  const chevron = document.getElementById(`chevron-${i}`);
+  body.classList.toggle('open');
+  chevron.style.transform = body.classList.contains('open') ? 'rotate(180deg)' : '';
+}
+</script>
+{% endblock %}

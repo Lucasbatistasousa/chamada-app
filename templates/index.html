@@ -1,0 +1,169 @@
+{% extends "base.html" %}
+{% block title %}Turmas — Chamada Digital{% endblock %}
+
+{% block content %}
+<div class="page">
+  <div class="page-header flex items-center justify-between">
+    <div>
+      <h1 class="page-title">Suas Turmas</h1>
+      <p class="page-sub">Gerencie turmas, alunos e inicie a chamada</p>
+    </div>
+    <button class="btn btn-primary" onclick="abrirModalTurma()">+ Nova Turma</button>
+  </div>
+
+  <div id="lista-turmas">
+    {% if turmas %}
+      {% for turma in turmas %}
+      <div class="card" style="margin-bottom:1rem;" id="turma-{{ turma.id }}">
+        <div class="flex items-center justify-between">
+          <div>
+            <div style="font-family:'DM Serif Display',serif;font-size:1.25rem;">{{ turma.nome }}</div>
+            <div class="page-sub mt-1" id="count-{{ turma.id }}">carregando alunos...</div>
+          </div>
+          <div class="flex gap-2">
+            <a href="/chamada/{{ turma.id }}" class="btn btn-accent">▶ Fazer Chamada</a>
+            <button class="btn btn-ghost" onclick="abrirAlunos({{ turma.id }}, '{{ turma.nome }}')">Alunos</button>
+            <button class="btn btn-danger btn-sm" onclick="deletarTurma({{ turma.id }}, '{{ turma.nome }}')">✕</button>
+          </div>
+        </div>
+      </div>
+      {% endfor %}
+    {% else %}
+      <div id="empty" class="card" style="text-align:center;padding:3rem;color:var(--muted);">
+        <div style="font-size:2.5rem;margin-bottom:0.75rem;">📋</div>
+        <div style="font-size:1.05rem;">Nenhuma turma ainda.</div>
+        <div style="font-size:0.875rem;margin-top:0.25rem;">Clique em <strong>+ Nova Turma</strong> para começar.</div>
+      </div>
+    {% endif %}
+  </div>
+</div>
+
+<!-- Modal Nova Turma -->
+<div class="overlay" id="modal-turma">
+  <div class="modal">
+    <h3>Nova Turma</h3>
+    <label for="nome-turma">Nome da turma</label>
+    <input id="nome-turma" class="input" placeholder="Ex: 3º Ano A" onkeydown="if(event.key==='Enter')salvarTurma()" autofocus />
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="fecharModal('modal-turma')">Cancelar</button>
+      <button class="btn btn-primary" onclick="salvarTurma()">Criar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Alunos -->
+<div class="overlay" id="modal-alunos">
+  <div class="modal" style="max-width:500px;">
+    <h3 id="titulo-modal-alunos">Alunos</h3>
+    <div id="lista-alunos-modal" style="max-height:320px;overflow-y:auto;margin-bottom:1rem;"></div>
+    <hr>
+    <label for="nome-aluno">Adicionar aluno</label>
+    <div class="flex gap-2 mt-1">
+      <input id="nome-aluno" class="input" placeholder="Nome completo"
+             onkeydown="if(event.key==='Enter')adicionarAluno()" />
+      <button class="btn btn-primary" onclick="adicionarAluno()">+</button>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="fecharModal('modal-alunos')">Fechar</button>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let turmaAtual = null;
+
+// Carrega contagem de alunos para cada turma
+document.querySelectorAll('[id^="count-"]').forEach(el => {
+  const tid = el.id.replace('count-', '');
+  fetch(`/turmas/${tid}/alunos`)
+    .then(r => r.json())
+    .then(alunos => {
+      el.textContent = alunos.length === 0
+        ? 'Nenhum aluno'
+        : `${alunos.length} aluno${alunos.length > 1 ? 's' : ''}`;
+    });
+});
+
+function abrirModalTurma() {
+  document.getElementById('nome-turma').value = '';
+  document.getElementById('modal-turma').classList.add('open');
+  setTimeout(() => document.getElementById('nome-turma').focus(), 80);
+}
+
+function fecharModal(id) {
+  document.getElementById(id).classList.remove('open');
+}
+
+async function salvarTurma() {
+  const nome = document.getElementById('nome-turma').value.trim();
+  if (!nome) return;
+  const r = await fetch('/turmas', {
+    method: 'POST', headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({nome})
+  });
+  if (!r.ok) { toast('Turma já existe!'); return; }
+  toast('Turma criada!');
+  setTimeout(() => location.reload(), 600);
+}
+
+async function deletarTurma(id, nome) {
+  if (!confirm(`Deletar a turma "${nome}" e todos os dados?`)) return;
+  await fetch(`/turmas/${id}`, {method:'DELETE'});
+  document.getElementById(`turma-${id}`)?.remove();
+  toast('Turma removida');
+}
+
+async function abrirAlunos(turmaId, turmaNome) {
+  turmaAtual = turmaId;
+  document.getElementById('titulo-modal-alunos').textContent = `Alunos — ${turmaNome}`;
+  document.getElementById('nome-aluno').value = '';
+  await carregarAlunos();
+  document.getElementById('modal-alunos').classList.add('open');
+}
+
+async function carregarAlunos() {
+  const r = await fetch(`/turmas/${turmaAtual}/alunos`);
+  const alunos = await r.json();
+  const el = document.getElementById('lista-alunos-modal');
+  if (alunos.length === 0) {
+    el.innerHTML = '<div style="color:var(--muted);padding:0.75rem 0;font-size:0.9rem;">Nenhum aluno cadastrado.</div>';
+    return;
+  }
+  el.innerHTML = alunos.map(a => `
+    <div class="flex items-center justify-between" style="padding:0.5rem 0;border-bottom:1px solid var(--border);">
+      <span style="font-size:0.9375rem;">${a.nome}</span>
+      <button class="btn btn-danger btn-sm" onclick="deletarAluno(${a.id})">✕</button>
+    </div>
+  `).join('');
+  // Atualiza contagem
+  const countEl = document.getElementById(`count-${turmaAtual}`);
+  if (countEl) countEl.textContent = `${alunos.length} aluno${alunos.length > 1 ? 's' : ''}`;
+}
+
+async function adicionarAluno() {
+  const nome = document.getElementById('nome-aluno').value.trim();
+  if (!nome || !turmaAtual) return;
+  await fetch('/alunos', {
+    method: 'POST', headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({nome, turma_id: turmaAtual})
+  });
+  document.getElementById('nome-aluno').value = '';
+  document.getElementById('nome-aluno').focus();
+  await carregarAlunos();
+  toast('Aluno adicionado!');
+}
+
+async function deletarAluno(id) {
+  await fetch(`/alunos/${id}`, {method:'DELETE'});
+  await carregarAlunos();
+  toast('Aluno removido');
+}
+
+// Fechar modal ao clicar fora
+document.querySelectorAll('.overlay').forEach(o => {
+  o.addEventListener('click', e => { if (e.target === o) o.classList.remove('open'); });
+});
+</script>
+{% endblock %}

@@ -1,0 +1,234 @@
+{% extends "base.html" %}
+{% block title %}Chamada — {{ turma.nome }}{% endblock %}
+
+{% block head %}
+<style>
+  .aluno-card {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0.9rem 1.25rem;
+    border: 2px solid var(--border);
+    border-radius: 10px;
+    margin-bottom: 0.625rem;
+    background: #fff;
+    transition: all 0.15s;
+    cursor: pointer;
+    user-select: none;
+  }
+  .aluno-card:hover { border-color: #bbb; }
+  .aluno-card.presente {
+    border-color: var(--green);
+    background: #f0faf4;
+  }
+  .aluno-card.falta {
+    border-color: var(--red);
+    background: #fdf2f0;
+    opacity: 0.75;
+  }
+  .aluno-nome { font-size: 1rem; font-weight: 500; }
+  .aluno-status {
+    font-size: 0.8125rem; font-weight: 700;
+    padding: 0.3rem 0.875rem;
+    border-radius: 99px;
+    transition: all 0.15s;
+  }
+  .presente .aluno-status { background: #dcf0e5; color: var(--green); }
+  .falta .aluno-status { background: #fde8e3; color: var(--red); }
+  .aluno-card:not(.presente):not(.falta) .aluno-status { background: var(--cream); color: var(--muted); }
+
+  .stats-bar {
+    display: flex; gap: 1rem;
+    padding: 1rem 1.25rem;
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    margin-bottom: 1.5rem;
+  }
+  .stat { flex: 1; text-align: center; }
+  .stat-num { font-family: 'DM Serif Display', serif; font-size: 1.75rem; line-height: 1; }
+  .stat-label { font-size: 0.75rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; margin-top: 0.2rem; }
+  .stat-num.green { color: var(--green); }
+  .stat-num.red { color: var(--red); }
+  .stat-num.gray { color: var(--muted); }
+
+  .btn-group { display: flex; gap: 0.5rem; }
+
+  .sticky-footer {
+    position: sticky; bottom: 0;
+    background: var(--paper);
+    border-top: 1px solid var(--border);
+    padding: 1rem 1.5rem;
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 1rem;
+    margin: 0 -1.5rem -2.5rem;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page" style="padding-bottom:5rem;">
+  <div class="page-header flex items-center justify-between">
+    <div>
+      <a href="/" style="font-size:0.8125rem;color:var(--muted);text-decoration:none;">← Voltar</a>
+      <h1 class="page-title mt-1">{{ turma.nome }}</h1>
+      <p class="page-sub">Clique no aluno para alternar presença / falta</p>
+    </div>
+    <div>
+      <label for="data-chamada" style="text-align:right;">Data</label>
+      <input type="date" id="data-chamada" class="input" style="width:auto;" />
+    </div>
+  </div>
+
+  {% if alunos %}
+  <!-- Stats -->
+  <div class="stats-bar">
+    <div class="stat">
+      <div class="stat-num gray" id="stat-total">{{ alunos|length }}</div>
+      <div class="stat-label">Total</div>
+    </div>
+    <div class="stat">
+      <div class="stat-num green" id="stat-presentes">0</div>
+      <div class="stat-label">Presentes</div>
+    </div>
+    <div class="stat">
+      <div class="stat-num red" id="stat-faltas">0</div>
+      <div class="stat-label">Faltas</div>
+    </div>
+    <div class="stat">
+      <div class="stat-num gray" id="stat-pendentes">{{ alunos|length }}</div>
+      <div class="stat-label">Pendentes</div>
+    </div>
+  </div>
+
+  <!-- Ações rápidas -->
+  <div class="flex gap-2" style="margin-bottom:1rem;">
+    <button class="btn btn-ghost btn-sm" onclick="marcarTodos(true)">✓ Todos presentes</button>
+    <button class="btn btn-ghost btn-sm" onclick="marcarTodos(false)">✕ Todos faltaram</button>
+    <button class="btn btn-ghost btn-sm" onclick="limparTodos()">↺ Limpar</button>
+  </div>
+
+  <!-- Lista de alunos -->
+  <div id="lista">
+    {% for aluno in alunos %}
+    <div class="aluno-card" id="aluno-{{ aluno.id }}" onclick="toggle({{ aluno.id }})">
+      <div>
+        <div class="aluno-nome">{{ aluno.nome }}</div>
+      </div>
+      <div class="aluno-status" id="status-{{ aluno.id }}">—</div>
+    </div>
+    {% endfor %}
+  </div>
+
+  <!-- Footer fixo -->
+  <div class="sticky-footer">
+    <div style="font-size:0.875rem;color:var(--muted);" id="footer-info">Marque a presença dos alunos</div>
+    <div class="flex gap-2">
+      <a href="/" class="btn btn-ghost">Cancelar</a>
+      <button class="btn btn-accent" onclick="salvar()">💾 Salvar Chamada</button>
+    </div>
+  </div>
+
+  {% else %}
+  <div class="card" style="text-align:center;padding:3rem;color:var(--muted);">
+    <div style="font-size:2.5rem;margin-bottom:0.75rem;">👤</div>
+    <div style="font-size:1.05rem;">Nenhum aluno nesta turma.</div>
+    <a href="/" class="btn btn-primary" style="margin-top:1rem;">Cadastrar alunos</a>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const turmaId = {{ turma.id }};
+const estado = {}; // aluno_id -> true | false | undefined
+
+// Data padrão = hoje
+const hoje = new Date();
+const offset = hoje.getTimezoneOffset() * 60000;
+const local = new Date(hoje - offset);
+document.getElementById('data-chamada').value = local.toISOString().slice(0, 10);
+
+function toggle(id) {
+  if (estado[id] === undefined) estado[id] = true;
+  else if (estado[id] === true) estado[id] = false;
+  else estado[id] = undefined;
+  atualizar(id);
+  atualizarStats();
+}
+
+function atualizar(id) {
+  const card = document.getElementById(`aluno-${id}`);
+  const status = document.getElementById(`status-${id}`);
+  card.className = 'aluno-card';
+  if (estado[id] === true) {
+    card.classList.add('presente');
+    status.textContent = 'Presente';
+  } else if (estado[id] === false) {
+    card.classList.add('falta');
+    status.textContent = 'Falta';
+  } else {
+    status.textContent = '—';
+  }
+}
+
+function marcarTodos(val) {
+  document.querySelectorAll('[id^="aluno-"]').forEach(el => {
+    const id = parseInt(el.id.replace('aluno-', ''));
+    estado[id] = val;
+    atualizar(id);
+  });
+  atualizarStats();
+}
+
+function limparTodos() {
+  document.querySelectorAll('[id^="aluno-"]').forEach(el => {
+    const id = parseInt(el.id.replace('aluno-', ''));
+    estado[id] = undefined;
+    atualizar(id);
+  });
+  atualizarStats();
+}
+
+function atualizarStats() {
+  const vals = Object.values(estado).filter(v => v !== undefined);
+  const presentes = vals.filter(v => v === true).length;
+  const faltas = vals.filter(v => v === false).length;
+  const total = document.querySelectorAll('[id^="aluno-"]').length;
+  const pendentes = total - presentes - faltas;
+
+  document.getElementById('stat-presentes').textContent = presentes;
+  document.getElementById('stat-faltas').textContent = faltas;
+  document.getElementById('stat-pendentes').textContent = pendentes;
+
+  const pct = total > 0 ? Math.round(presentes / total * 100) : 0;
+  document.getElementById('footer-info').textContent =
+    pendentes > 0
+      ? `${pendentes} aluno${pendentes > 1 ? 's' : ''} sem marcação`
+      : `${pct}% de presença`;
+}
+
+async function salvar() {
+  const data = document.getElementById('data-chamada').value;
+  if (!data) { toast('Selecione uma data'); return; }
+
+  const presencas = {};
+  document.querySelectorAll('[id^="aluno-"]').forEach(el => {
+    const id = parseInt(el.id.replace('aluno-', ''));
+    if (estado[id] !== undefined) presencas[id] = estado[id];
+  });
+
+  if (Object.keys(presencas).length === 0) { toast('Marque ao menos um aluno'); return; }
+
+  const r = await fetch('/chamada/salvar', {
+    method: 'POST', headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({ turma_id: turmaId, data, presencas })
+  });
+  if (r.ok) {
+    toast('Chamada salva com sucesso! ✓');
+    setTimeout(() => location.href = '/', 1200);
+  } else {
+    toast('Erro ao salvar. Tente novamente.');
+  }
+}
+</script>
+{% endblock %}
