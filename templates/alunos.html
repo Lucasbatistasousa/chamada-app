@@ -1,0 +1,145 @@
+{% extends "base.html" %}
+{% block title %}Alunos — {{ turma.nome }}{% endblock %}
+
+{% block content %}
+
+  <!-- Cabeçalho -->
+  <div class="flex items-center justify-between mb-8">
+    <div>
+      <a href="/turmas"
+         class="text-sm text-gray-400 hover:text-verde-escuro transition">
+        ← Voltar para Turmas
+      </a>
+      <h1 class="text-2xl font-bold text-marrom mt-1">{{ turma.nome }}</h1>
+      <p class="text-gray-500 text-sm mt-1">
+        {{ alunos|length }} aluno{% if alunos|length != 1 %}s{% endif %} cadastrado{% if alunos|length != 1 %}s{% endif %}
+      </p>
+    </div>
+
+    <!-- Botão adicionar aluno -->
+    {% if current_user.pode_gerenciar_alunos() %}
+      <button
+        onclick="document.getElementById('modal-aluno').classList.remove('hidden')"
+        class="bg-verde-escuro text-white px-4 py-2 rounded-lg
+               font-semibold text-sm hover:bg-opacity-90 transition">
+        + Adicionar Aluno
+      </button>
+    {% endif %}
+  </div>
+
+  <!-- Links rápidos -->
+  <div class="flex gap-3 mb-6 flex-wrap">
+    <a href="/turmas/{{ turma.id }}/chamada"
+       class="bg-verde-escuro text-white px-4 py-2 rounded-lg
+              text-sm font-semibold hover:bg-opacity-90 transition">
+      ▶ Fazer Chamada
+    </a>
+    <a href="/turmas/{{ turma.id }}/historico"
+       class="bg-white border border-gray-200 text-gray-700 px-4 py-2
+              rounded-lg text-sm font-semibold hover:border-verde-claro transition">
+      📋 Ver Histórico
+    </a>
+    <a href="/turmas/{{ turma.id }}/questionarios"
+       class="bg-white border border-gray-200 text-gray-700 px-4 py-2
+              rounded-lg text-sm font-semibold hover:border-verde-claro transition">
+      📝 Questionários
+    </a>
+  </div>
+
+  <!-- Lista de alunos -->
+  {% if alunos %}
+    <div class="bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden">
+      {% for aluno in alunos %}
+        <div class="flex items-center justify-between px-6 py-4
+                    {% if not loop.last %}border-b border-gray-100{% endif %}
+                    hover:bg-gray-50 transition">
+
+          <div class="flex items-center gap-3">
+            <!-- Avatar com inicial do nome -->
+            <div class="w-9 h-9 rounded-full bg-verde-claro text-white
+                        flex items-center justify-center font-bold text-sm">
+              {{ aluno.nome[0].upper() }}
+            </div>
+            <span class="font-medium text-gray-700">{{ aluno.nome }}</span>
+          </div>
+
+          <!-- Botão remover -->
+          {% if current_user.pode_gerenciar_alunos() %}
+            <form method="POST" action="/alunos/{{ aluno.id }}/deletar">
+              <button
+                type="submit"
+                onclick="return confirm('Remover {{ aluno.nome }}?')"
+                class="text-red-400 hover:text-red-600 text-sm transition px-2">
+                ✕
+              </button>
+            </form>
+          {% endif %}
+
+        </div>
+      {% endfor %}
+    </div>
+
+  {% else %}
+    <div class="text-center py-16 text-gray-400">
+      <div class="text-5xl mb-4">👤</div>
+      <div class="font-semibold text-lg">Nenhum aluno cadastrado ainda</div>
+      {% if current_user.pode_gerenciar_alunos() %}
+        <p class="text-sm mt-1">
+          Clique em <strong>+ Adicionar Aluno</strong> para começar
+        </p>
+      {% endif %}
+    </div>
+  {% endif %}
+
+
+  <!-- ── MODAL ADICIONAR ALUNO ── -->
+  {% if current_user.pode_gerenciar_alunos() %}
+    <div id="modal-aluno"
+         class="hidden fixed inset-0 bg-black bg-opacity-40
+                flex items-center justify-center z-50">
+
+      <div class="bg-white rounded-2xl shadow-xl p-8 w-full max-w-md mx-4">
+
+        <h2 class="text-xl font-bold text-marrom mb-6">Adicionar Aluno</h2>
+
+        <form method="POST"
+              action="/turmas/{{ turma.id }}/alunos/adicionar"
+              class="flex flex-col gap-4">
+
+          <div>
+            <label class="block text-sm font-semibold text-gray-600 mb-1">
+              Nome completo
+            </label>
+            <input
+              type="text"
+              name="nome"
+              required
+              placeholder="Ex: João da Silva"
+              class="w-full border border-gray-300 rounded-lg px-4 py-2
+                     focus:outline-none focus:ring-2 focus:ring-verde-claro text-sm"
+            >
+          </div>
+
+          <div class="flex gap-3 justify-end mt-2">
+            <button
+              type="button"
+              onclick="document.getElementById('modal-aluno').classList.add('hidden')"
+              class="px-4 py-2 rounded-lg border border-gray-300 text-sm
+                     text-gray-600 hover:bg-gray-50 transition">
+              Cancelar
+            </button>
+            <button
+              type="submit"
+              class="bg-verde-escuro text-white px-4 py-2 rounded-lg
+                     text-sm font-semibold hover:bg-opacity-90 transition">
+              Adicionar
+            </button>
+          </div>
+
+        </form>
+
+      </div>
+    </div>
+  {% endif %}
+
+{% endblock %}

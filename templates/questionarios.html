@@ -1,0 +1,201 @@
+{% extends "base.html" %}
+{% block title %}Questionários — {{ turma.nome }}{% endblock %}
+
+{% block content %}
+
+  <!-- Cabeçalho -->
+  <div class="flex items-center justify-between mb-8">
+    <div>
+      <a href="/turmas/{{ turma.id }}/alunos"
+         class="text-sm text-gray-400 hover:text-verde-escuro transition">
+        ← Voltar para Alunos
+      </a>
+      <h1 class="text-2xl font-bold text-marrom mt-1">
+        Questionários — {{ turma.nome }}
+      </h1>
+      <p class="text-gray-500 text-sm mt-1">
+        Registre a entrega de questionários pelos alunos
+      </p>
+    </div>
+  </div>
+
+  {% if alunos %}
+
+    <form method="POST" action="/turmas/{{ turma.id }}/questionarios/salvar">
+
+      <!-- Dados do questionário -->
+      <div class="bg-white border border-gray-200 rounded-2xl shadow-sm p-6 mb-6">
+
+        <h2 class="text-base font-bold text-verde-escuro mb-4">
+          Dados do Questionário
+        </h2>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+
+          <div>
+            <label class="block text-sm font-semibold text-gray-600 mb-1">
+              Nome do Questionário
+            </label>
+            <input
+              type="text"
+              name="descricao"
+              required
+              placeholder="Ex: Questionário 3"
+              class="w-full border border-gray-300 rounded-lg px-4 py-2 text-sm
+                     focus:outline-none focus:ring-2 focus:ring-verde-claro"
+            >
+          </div>
+
+          <div>
+            <label class="block text-sm font-semibold text-gray-600 mb-1">
+              Data de Entrega
+            </label>
+            <input
+              type="date"
+              name="data_entrega"
+              value="{{ now }}"
+              required
+              class="w-full border border-gray-300 rounded-lg px-4 py-2 text-sm
+                     focus:outline-none focus:ring-2 focus:ring-verde-claro"
+            >
+          </div>
+
+        </div>
+      </div>
+
+      <!-- Lista de alunos -->
+      <div class="bg-white border border-gray-200 rounded-2xl shadow-sm
+                  overflow-hidden mb-6">
+
+        <!-- Cabeçalho com ações rápidas -->
+        <div class="flex items-center justify-between px-6 py-4
+                    border-b border-gray-100">
+          <h2 class="text-base font-bold text-verde-escuro">
+            Marque quem entregou
+          </h2>
+          <div class="flex gap-2">
+            <button
+              type="button"
+              onclick="marcarTodos(true)"
+              class="text-xs border border-gray-200 text-gray-600 px-3 py-1
+                     rounded-lg hover:border-verde-claro hover:text-verde-escuro
+                     transition">
+              ✓ Marcar todos
+            </button>
+            <button
+              type="button"
+              onclick="marcarTodos(false)"
+              class="text-xs border border-gray-200 text-gray-600 px-3 py-1
+                     rounded-lg hover:border-red-300 hover:text-red-500
+                     transition">
+              ✕ Desmarcar todos
+            </button>
+          </div>
+        </div>
+
+        <!-- Alunos -->
+        {% for aluno in alunos %}
+          <label
+            for="aluno-{{ aluno.id }}"
+            class="flex items-center justify-between px-6 py-4 cursor-pointer
+                   {% if not loop.last %}border-b border-gray-100{% endif %}
+                   hover:bg-gray-50 transition">
+
+            <div class="flex items-center gap-3">
+              <!-- Avatar -->
+              <div class="w-9 h-9 rounded-full bg-gray-200 text-gray-500
+                          flex items-center justify-center font-bold text-sm
+                          avatar-q-{{ aluno.id }}">
+                {{ aluno.nome[0].upper() }}
+              </div>
+              <span class="font-medium text-gray-700">{{ aluno.nome }}</span>
+            </div>
+
+            <div class="flex items-center gap-3">
+
+              <!-- Badge de status -->
+              <span class="text-xs font-semibold px-3 py-1 rounded-full
+                           bg-gray-100 text-gray-400 badge-q-{{ aluno.id }}">
+                —
+              </span>
+
+              <!-- Link para ver entregas anteriores -->
+              <a href="/alunos/{{ aluno.id }}/questionarios"
+                 onclick="event.stopPropagation()"
+                 class="text-xs text-gray-400 hover:text-verde-escuro
+                        underline transition">
+                Ver entregas
+              </a>
+
+              <input
+                type="checkbox"
+                name="alunos_ids"
+                value="{{ aluno.id }}"
+                id="aluno-{{ aluno.id }}"
+                class="checkbox-aluno w-4 h-4 accent-green-600"
+                onchange="atualizarBadge({{ aluno.id }})"
+              >
+
+            </div>
+
+          </label>
+        {% endfor %}
+
+      </div>
+
+      <!-- Botão salvar -->
+      <div class="flex justify-end">
+        <button
+          type="submit"
+          class="bg-verde-escuro text-white px-6 py-3 rounded-xl
+                 font-semibold hover:bg-opacity-90 transition shadow-sm">
+          💾 Salvar Entregas
+        </button>
+      </div>
+
+    </form>
+
+  {% else %}
+    <div class="text-center py-16 text-gray-400">
+      <div class="text-5xl mb-4">📝</div>
+      <div class="font-semibold text-lg">Nenhum aluno cadastrado nessa turma</div>
+      <a href="/turmas/{{ turma.id }}/alunos"
+         class="inline-block mt-4 bg-verde-escuro text-white px-4 py-2
+                rounded-lg text-sm font-semibold hover:bg-opacity-90 transition">
+        + Adicionar Alunos
+      </a>
+    </div>
+  {% endif %}
+
+  <script>
+    function atualizarBadge(id) {
+      const checkbox = document.getElementById(`aluno-${id}`);
+      const badge    = document.querySelector(`.badge-q-${id}`);
+      const avatar   = document.querySelector(`.avatar-q-${id}`);
+
+      if (checkbox.checked) {
+        badge.textContent = 'Entregou';
+        badge.className   = `text-xs font-semibold px-3 py-1 rounded-full
+                             bg-green-100 text-green-700 badge-q-${id}`;
+        avatar.className  = avatar.className
+                              .replace('bg-gray-200 text-gray-500',
+                                       'bg-verde-claro text-white');
+      } else {
+        badge.textContent = '—';
+        badge.className   = `text-xs font-semibold px-3 py-1 rounded-full
+                             bg-gray-100 text-gray-400 badge-q-${id}`;
+        avatar.className  = avatar.className
+                              .replace('bg-verde-claro text-white',
+                                       'bg-gray-200 text-gray-500');
+      }
+    }
+
+    function marcarTodos(valor) {
+      document.querySelectorAll('.checkbox-aluno').forEach(cb => {
+        cb.checked = valor;
+        atualizarBadge(cb.value);
+      });
+    }
+  </script>
+
+{% endblock %}

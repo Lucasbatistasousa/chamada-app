@@ -1,0 +1,139 @@
+{% extends "base.html" %}
+{% block title %}Turmas — Escola de Líderes{% endblock %}
+
+{% block content %}
+
+  <!-- Cabeçalho da página -->
+  <div class="flex items-center justify-between mb-8">
+    <div>
+      <h1 class="text-2xl font-bold text-marrom">Turmas</h1>
+      <p class="text-gray-500 text-sm mt-1">
+        Gerencie as turmas e acesse os alunos
+      </p>
+    </div>
+
+    <!-- Botão de nova turma — só para quem tem permissão -->
+    {% if current_user.pode_gerenciar_alunos() %}
+      <button
+        onclick="document.getElementById('modal-turma').classList.remove('hidden')"
+        class="bg-verde-escuro text-white px-4 py-2 rounded-lg
+               font-semibold text-sm hover:bg-opacity-90 transition">
+        + Nova Turma
+      </button>
+    {% endif %}
+  </div>
+
+  <!-- Lista de turmas -->
+  {% if turmas %}
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      {% for turma in turmas %}
+        <div class="bg-white border border-gray-200 rounded-2xl p-5 shadow-sm
+                    hover:shadow-md hover:border-verde-claro transition">
+
+          <div class="flex items-start justify-between">
+            <div>
+              <h2 class="font-bold text-verde-escuro text-lg">{{ turma.nome }}</h2>
+            </div>
+
+            <!-- Botão deletar -->
+            {% if current_user.pode_gerenciar_alunos() %}
+              <form method="POST" action="/turmas/{{ turma.id }}/deletar">
+                <button
+                  type="submit"
+                  onclick="return confirm('Deletar a turma {{ turma.nome }} e todos os alunos?')"
+                  class="text-red-400 hover:text-red-600 text-sm transition">
+                  ✕
+                </button>
+              </form>
+            {% endif %}
+          </div>
+
+          <!-- Links de ação -->
+          <div class="flex gap-3 mt-4 text-sm">
+            <a href="/turmas/{{ turma.id }}/alunos"
+               class="bg-gray-100 text-gray-700 px-3 py-1 rounded-lg
+                      hover:bg-verde-claro hover:text-white transition">
+              👥 Alunos
+            </a>
+            <a href="/turmas/{{ turma.id }}/chamada"
+               class="bg-gray-100 text-gray-700 px-3 py-1 rounded-lg
+                      hover:bg-verde-claro hover:text-white transition">
+              ▶ Chamada
+            </a>
+            <a href="/turmas/{{ turma.id }}/historico"
+               class="bg-gray-100 text-gray-700 px-3 py-1 rounded-lg
+                      hover:bg-verde-claro hover:text-white transition">
+              📋 Histórico
+            </a>
+            <a href="/turmas/{{ turma.id }}/questionarios"
+               class="bg-gray-100 text-gray-700 px-3 py-1 rounded-lg
+                      hover:bg-verde-claro hover:text-white transition">
+              📝 Questionários
+            </a>
+          </div>
+
+        </div>
+      {% endfor %}
+    </div>
+
+  {% else %}
+    <!-- Estado vazio -->
+    <div class="text-center py-16 text-gray-400">
+      <div class="text-5xl mb-4">🏫</div>
+      <div class="font-semibold text-lg">Nenhuma turma cadastrada ainda</div>
+      {% if current_user.pode_gerenciar_alunos() %}
+        <p class="text-sm mt-1">Clique em <strong>+ Nova Turma</strong> para começar</p>
+      {% endif %}
+    </div>
+  {% endif %}
+
+
+  <!-- ── MODAL NOVA TURMA ── -->
+  {% if current_user.pode_gerenciar_alunos() %}
+    <div id="modal-turma"
+         class="hidden fixed inset-0 bg-black bg-opacity-40
+                flex items-center justify-center z-50">
+
+      <div class="bg-white rounded-2xl shadow-xl p-8 w-full max-w-md mx-4">
+
+        <h2 class="text-xl font-bold text-marrom mb-6">Nova Turma</h2>
+
+        <form method="POST" action="/turmas/criar" class="flex flex-col gap-4">
+
+          <div>
+            <label class="block text-sm font-semibold text-gray-600 mb-1">
+              Nome da turma
+            </label>
+            <input
+              type="text"
+              name="nome"
+              required
+              placeholder="Ex: 3º Ano A"
+              class="w-full border border-gray-300 rounded-lg px-4 py-2
+                     focus:outline-none focus:ring-2 focus:ring-verde-claro text-sm"
+            >
+          </div>
+
+          <div class="flex gap-3 justify-end mt-2">
+            <button
+              type="button"
+              onclick="document.getElementById('modal-turma').classList.add('hidden')"
+              class="px-4 py-2 rounded-lg border border-gray-300 text-sm
+                     text-gray-600 hover:bg-gray-50 transition">
+              Cancelar
+            </button>
+            <button
+              type="submit"
+              class="bg-verde-escuro text-white px-4 py-2 rounded-lg
+                     text-sm font-semibold hover:bg-opacity-90 transition">
+              Criar
+            </button>
+          </div>
+
+        </form>
+
+      </div>
+    </div>
+  {% endif %}
+
+{% endblock %}

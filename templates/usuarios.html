@@ -1,0 +1,192 @@
+{% extends "base.html" %}
+{% block title %}Usuários — Escola de Líderes{% endblock %}
+
+{% block content %}
+
+  <!-- Cabeçalho -->
+  <div class="flex items-center justify-between mb-8">
+    <div>
+      <a href="/"
+         class="text-sm text-gray-400 hover:text-verde-escuro transition">
+        ← Voltar para Início
+      </a>
+      <h1 class="text-2xl font-bold text-marrom mt-1">Usuários</h1>
+      <p class="text-gray-500 text-sm mt-1">
+        Gerencie os usuários do sistema
+      </p>
+    </div>
+
+    <button
+      onclick="document.getElementById('modal-usuario').classList.remove('hidden')"
+      class="bg-verde-escuro text-white px-4 py-2 rounded-lg
+             font-semibold text-sm hover:bg-opacity-90 transition">
+      + Novo Usuário
+    </button>
+  </div>
+
+  <!-- Lista de usuários -->
+  {% if usuarios %}
+    <div class="bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden">
+
+      {% for usuario in usuarios %}
+        <div class="flex items-center justify-between px-6 py-4
+                    {% if not loop.last %}border-b border-gray-100{% endif %}
+                    hover:bg-gray-50 transition">
+
+          <div class="flex items-center gap-3">
+            <!-- Avatar -->
+            <div class="w-10 h-10 rounded-full flex items-center justify-center
+                        font-bold text-sm text-white
+                        {% if usuario.perfil == 'diretor' %}bg-marrom
+                        {% elif usuario.perfil == 'coordenador' %}bg-verde-escuro
+                        {% elif usuario.perfil == 'secretaria' %}bg-blue-400
+                        {% else %}bg-verde-claro{% endif %}">
+              {{ usuario.nome[0].upper() }}
+            </div>
+
+            <div>
+              <div class="font-medium text-gray-700 flex items-center gap-2">
+                {{ usuario.nome }}
+                <!-- Indica o usuário logado atualmente -->
+                {% if usuario.id == current_user.id %}
+                  <span class="text-xs bg-gray-100 text-gray-400
+                               px-2 py-0.5 rounded-full">
+                    você
+                  </span>
+                {% endif %}
+              </div>
+              <div class="text-sm text-gray-400">{{ usuario.email }}</div>
+            </div>
+          </div>
+
+          <div class="flex items-center gap-3">
+
+            <!-- Badge de perfil -->
+            <span class="text-xs font-semibold px-3 py-1 rounded-full
+              {% if usuario.perfil == 'diretor' %}bg-yellow-100 text-yellow-700
+              {% elif usuario.perfil == 'coordenador' %}bg-green-100 text-green-700
+              {% elif usuario.perfil == 'secretaria' %}bg-blue-100 text-blue-600
+              {% else %}bg-gray-100 text-gray-500{% endif %}">
+              {{ usuario.perfil }}
+            </span>
+
+            <!-- Botão deletar — não aparece para o próprio usuário -->
+            {% if usuario.id != current_user.id %}
+              <form method="POST" action="/usuarios/{{ usuario.id }}/deletar">
+                <button
+                  type="submit"
+                  onclick="return confirm('Deletar o usuário {{ usuario.nome }}?')"
+                  class="text-red-400 hover:text-red-600 transition px-2">
+                  ✕
+                </button>
+              </form>
+            {% endif %}
+
+          </div>
+        </div>
+      {% endfor %}
+
+    </div>
+
+  {% else %}
+    <div class="text-center py-16 text-gray-400">
+      <div class="text-5xl mb-4">👤</div>
+      <div class="font-semibold text-lg">Nenhum usuário cadastrado</div>
+    </div>
+  {% endif %}
+
+
+  <!-- ── MODAL NOVO USUÁRIO ── -->
+  <div id="modal-usuario"
+       class="hidden fixed inset-0 bg-black bg-opacity-40
+              flex items-center justify-center z-50">
+
+    <div class="bg-white rounded-2xl shadow-xl p-8 w-full max-w-md mx-4">
+
+      <h2 class="text-xl font-bold text-marrom mb-6">Novo Usuário</h2>
+
+      <form method="POST" action="/usuarios/criar" class="flex flex-col gap-4">
+
+        <div>
+          <label class="block text-sm font-semibold text-gray-600 mb-1">
+            Nome completo
+          </label>
+          <input
+            type="text"
+            name="nome"
+            required
+            placeholder="Ex: João da Silva"
+            class="w-full border border-gray-300 rounded-lg px-4 py-2 text-sm
+                   focus:outline-none focus:ring-2 focus:ring-verde-claro"
+          >
+        </div>
+
+        <div>
+          <label class="block text-sm font-semibold text-gray-600 mb-1">
+            Email
+          </label>
+          <input
+            type="email"
+            name="email"
+            required
+            placeholder="joao@escola.com"
+            class="w-full border border-gray-300 rounded-lg px-4 py-2 text-sm
+                   focus:outline-none focus:ring-2 focus:ring-verde-claro"
+          >
+        </div>
+
+        <div>
+          <label class="block text-sm font-semibold text-gray-600 mb-1">
+            Senha
+          </label>
+          <input
+            type="password"
+            name="senha"
+            required
+            placeholder="••••••••"
+            class="w-full border border-gray-300 rounded-lg px-4 py-2 text-sm
+                   focus:outline-none focus:ring-2 focus:ring-verde-claro"
+          >
+        </div>
+
+        <div>
+          <label class="block text-sm font-semibold text-gray-600 mb-1">
+            Perfil
+          </label>
+          <select
+            name="perfil"
+            required
+            class="w-full border border-gray-300 rounded-lg px-4 py-2 text-sm
+                   focus:outline-none focus:ring-2 focus:ring-verde-claro
+                   bg-white"
+          >
+            <option value="">Selecione um perfil</option>
+            <option value="diretor">Diretor</option>
+            <option value="coordenador">Coordenador</option>
+            <option value="secretaria">Secretaria</option>
+            <option value="professor">Professor</option>
+          </select>
+        </div>
+
+        <div class="flex gap-3 justify-end mt-2">
+          <button
+            type="button"
+            onclick="document.getElementById('modal-usuario').classList.add('hidden')"
+            class="px-4 py-2 rounded-lg border border-gray-300 text-sm
+                   text-gray-600 hover:bg-gray-50 transition">
+            Cancelar
+          </button>
+          <button
+            type="submit"
+            class="bg-verde-escuro text-white px-4 py-2 rounded-lg
+                   text-sm font-semibold hover:bg-opacity-90 transition">
+            Criar
+          </button>
+        </div>
+
+      </form>
+
+    </div>
+  </div>
+
+{% endblock %}
