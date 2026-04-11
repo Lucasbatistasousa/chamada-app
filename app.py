@@ -902,6 +902,21 @@ def exportar_questionarios(turma_id):
         download_name=f'questionarios_{turma["nome"]}_{date.today()}.csv'
     )
 
+@app.route('/criar-admin')
+def criar_admin():
+    senha_hash = generate_password_hash('admin123')
+    try:
+        q(
+            '''INSERT INTO usuarios (nome, email, senha, perfil)
+               VALUES (%s, %s, %s, %s)''',
+            ('Administrador', 'admin@escola.com', senha_hash, 'diretor'),
+            commit=True
+        )
+        return 'Admin criado! Email: admin@escola.com | Senha: admin123'
+    except:
+        get_db().rollback()
+        return 'Admin já existe.'
+
 # --- INICIALIZAÇÃO ---
 
 init_db()
