@@ -560,11 +560,13 @@ def historico(turma_id):
 
     # Busca todas as chamadas da turma, da mais recente para a mais antiga
     chamadas = q(
-        '''SELECT c.id, c.data, u.nome AS professor_nome
+        '''SELECT c.id, c.data, 
+                  COALESCE(c.horario, '00:00') AS horario,
+                  u.nome AS professor_nome
            FROM chamadas c
            JOIN usuarios u ON u.id = c.professor_id
            WHERE c.turma_id = %s
-           ORDER BY c.data DESC''',
+           ORDER BY c.data DESC, c.horario DESC''',
         (turma_id,)
     )
     # JOIN une as duas tabelas para pegar o nome do professor
