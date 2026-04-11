@@ -588,10 +588,10 @@ def historico(turma_id):
         # sum() percorre a lista e conta quantos têm presente == 1
 
         resultado.append({
-            'id'            : c['id'],
-            'data'          : c['data'],
-            'horario'       : c['horario'],
-            'professor_nome': c['professor_nome'],
+            'id'            : chamada['id'],
+            'data'          : chamada['data'],
+            'horario'       : chamada['horario'],
+            'professor_nome': chamada['professor_nome'],
             'presencas'     : [dict(p) for p in presencas],
             'total'         : len(presencas),
             'presentes'     : sum(1 for p in presencas if p['presente']),
