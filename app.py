@@ -11,7 +11,7 @@ import os
 # Carrega o .env ANTES de qualquer outra coisa,
 # para que o DATABASE_URL já esteja disponível quando precisarmos
 
-from database import init_db, q, teardown_db, get_db
+from database import init_db, q, teardown_db, get_db, migrate_db
 from datetime import date
 
 import csv
@@ -484,19 +484,19 @@ def chamada(turma_id):
 @login_required
 def salvar_chamada(turma_id):
 
-    data = request.form['data']
-    # Pega a data escolhida no formulário no formato 'YYYY-MM-DD'
+    data    = request.form['data']
+    horario = request.form['horario']
+    # Pega o horário digitado pelo professor ex: "16:00"
 
-    # Verifica se já existe chamada para essa turma nesse dia
+    # Verifica se já existe chamada para essa turma, dia E horário
     chamada_existente = q(
-        'SELECT id FROM chamadas WHERE turma_id = %s AND data = %s',
-        (turma_id, data),
+        '''SELECT id FROM chamadas
+           WHERE turma_id = %s AND data = %s AND horario = %s''',
+        (turma_id, data, horario),
         one=True
     )
 
     if chamada_existente:
-        # Se já existe, apaga a chamada antiga e refaz
-        # Assim o professor pode corrigir se errou
         q(
             'DELETE FROM presencas WHERE chamada_id = %s',
             (chamada_existente['id'],),
@@ -508,36 +508,28 @@ def salvar_chamada(turma_id):
             commit=True
         )
 
-    # Cria o registro da chamada no banco
     q(
-        '''INSERT INTO chamadas (turma_id, professor_id, data)
-           VALUES (%s, %s, %s)''',
-        (turma_id, current_user.id, data),
+        '''INSERT INTO chamadas (turma_id, professor_id, data, horario)
+           VALUES (%s, %s, %s, %s)''',
+        (turma_id, current_user.id, data, horario),
         commit=True
     )
 
-    # Busca o ID da chamada que acabou de ser criada
     chamada = q(
-        'SELECT id FROM chamadas WHERE turma_id = %s AND data = %s',
-        (turma_id, data),
+        '''SELECT id FROM chamadas
+           WHERE turma_id = %s AND data = %s AND horario = %s''',
+        (turma_id, data, horario),
         one=True
     )
     chamada_id = chamada['id']
 
-    # Busca todos os alunos da turma
     lista_alunos = q(
         'SELECT id FROM alunos WHERE turma_id = %s',
         (turma_id,)
     )
 
     for aluno in lista_alunos:
-        # O formulário envia os IDs dos alunos PRESENTES como checkboxes.
-        # Se o ID do aluno está no formulário = presente (1)
-        # Se não está = falta (0)
         presente = 1 if str(aluno['id']) in request.form.getlist('presentes') else 0
-        # request.form.getlist('presentes') retorna uma lista com todos
-        # os valores dos checkboxes marcados com name="presentes"
-
         q(
             '''INSERT INTO presencas (chamada_id, aluno_id, presente)
                VALUES (%s, %s, %s)''',
@@ -596,12 +588,14 @@ def historico(turma_id):
         # sum() percorre a lista e conta quantos têm presente == 1
 
         resultado.append({
-            'data'            : chamada['data'],
-            'professor_nome'  : chamada['professor_nome'],
-            'presencas'       : presencas,
-            'total'           : total,
-            'presentes'       : presentes,
-            'porcentagem'     : round(presentes / total * 100) if total > 0 else 0
+            'id'            : c['id'],
+            'data'          : c['data'],
+            'horario'       : c['horario'],
+            'professor_nome': c['professor_nome'],
+            'presencas'     : [dict(p) for p in presencas],
+            'total'         : len(presencas),
+            'presentes'     : sum(1 for p in presencas if p['presente']),
+            'porcentagem'   : round(presentes / total * 100) if total > 0 else 0
         })
 
     # Monta o resumo de frequência por aluno
@@ -905,6 +899,7 @@ def exportar_questionarios(turma_id):
 # --- INICIALIZAÇÃO ---
 
 init_db()
+migrate_db()
 if __name__ == '__main__':
     
     app.run(debug=False)

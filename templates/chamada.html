@@ -31,6 +31,18 @@
                focus:outline-none focus:ring-2 focus:ring-verde-claro"
       >
     </div>
+    <!-- Campo de horário -->
+    <div>
+      <label class="block text-sm font-semibold text-gray-600 mb-1">
+        Horário
+      </label>
+      <input
+        type="time"
+        id="horario-chamada"
+        class="border border-gray-300 rounded-lg px-4 py-2 text-sm
+               focus:outline-none focus:ring-2 focus:ring-verde-claro"
+      >
+    </div>
   </div>
 
   <form method="POST" action="/turmas/{{ turma.id }}/chamada/salvar"
@@ -38,6 +50,7 @@
 
     <!-- Campo de data oculto — será preenchido pelo JavaScript -->
     <input type="hidden" name="data" id="data-hidden" value="{{ now }}">
+    <input type="hidden" name="horario" id="horario-hidden" value="00:00">
 
     <!-- Barra de resumo -->
     <div class="grid grid-cols-3 gap-4 mb-6">
@@ -148,6 +161,10 @@
     // Sincroniza o campo de data visível com o campo oculto do formulário
     document.getElementById('data-chamada').addEventListener('change', function () {
       document.getElementById('data-hidden').value = this.value;
+    });
+    // Sinconiza o campo de horário
+    document.getElementById('horario-chamada').addEventListener('change', function () {
+      document.getElementById('horario-hidden').value = this.value;
     });
 
     // Atualiza o visual do aluno quando o checkbox muda

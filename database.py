@@ -271,6 +271,28 @@ def init_db():
     print('✅ Banco de dados inicializado com sucesso!')
 
 
+def migrate_db():
+    """
+    Adiciona colunas novas em tabelas que já existem.
+    Rodamos isso separado do init_db() para não perder dados.
+    """
+    url = DATABASE_URL
+    if url and url.startswith('postgres://'):
+        url = url.replace('postgres://', 'postgresql://', 1)
+    conn = psycopg2.connect(url)
+    cur = conn.cursor()
+
+    # Adiciona a coluna horario na tabela chamadas se ainda não existir
+    cur.execute('''
+        ALTER TABLE chamadas
+        ADD COLUMN IF NOT EXISTS horario TEXT NOT NULL DEFAULT '00:00';
+    ''')
+
+    conn.commit()
+    cur.close()
+    conn.close()
+    print('✅ Migração executada com sucesso!')
+
 # ============================================================
 # FUNÇÃO: teardown_db()
 # Fecha a conexão com o banco ao final de cada requisição.
