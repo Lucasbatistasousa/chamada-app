@@ -159,43 +159,7 @@ def logout():
 @login_required
 def index():
     return render_template('index.html')
-
-
-# ============================================================
-# ROTA: /criar-admin  (temporária para testes)
-# Cria um usuário administrador para você conseguir fazer login.
-# APAGUE essa rota antes de colocar o projeto no ar!
-# ============================================================
-@app.route('/criar-admin')
-def criar_admin():
-    senha_hash = generate_password_hash('admin123')
-    # Nunca salvamos a senha pura — sempre o hash
-
-    try:
-        q(
-            '''INSERT INTO usuarios (nome, email, senha, perfil)
-               VALUES (%s, %s, %s, %s)''',
-            ('Administrador', 'admin@escola.com', senha_hash, 'diretor'),
-            commit=True
-        )
-        return 'Admin criado! Email: admin@escola.com | Senha: admin123'
-    except:
-        return 'Admin já existe.'
-    
-@app.route('/criar-professor')
-def criar_professor():
-    senha_hash = generate_password_hash('prof123')
-    try:
-        q(
-            '''INSERT INTO usuarios (nome, email, senha, perfil)
-               VALUES (%s, %s, %s, %s)''',
-            ('Professor Teste', 'professor@escola.com', senha_hash, 'professor'),
-            commit=True
-        )
-        return 'Professor criado! Email: professor@escola.com | Senha: prof123'
-    except:
-        return 'Professor já existe.'
-    
+ 
 # ============================================================
 # ROTA: /usuarios  (GET)
 # Lista todos os usuários do sistema.
@@ -279,6 +243,54 @@ def deletar_usuario(usuario_id):
     q('DELETE FROM usuarios WHERE id = %s', (usuario_id,), commit=True)
     flash('Usuário removido.', 'sucesso')
     return redirect(url_for('usuarios'))
+    
+# ============================================================
+# ROTA: /minha-conta  (GET e POST)
+# Permite que qualquer usuário logado troque sua própria senha.
+# ============================================================
+@app.route('/minha-conta', methods=['GET', 'POST'])
+@login_required
+def minha_conta():
+
+    if request.method == 'POST':
+        senha_atual    = request.form['senha_atual']
+        nova_senha     = request.form['nova_senha']
+        confirma_senha = request.form['confirma_senha']
+
+        # Busca o usuário no banco para verificar a senha atual
+        usuario = q(
+            'SELECT * FROM usuarios WHERE id = %s',
+            (current_user.id,),
+            one=True
+        )
+
+        # Verifica se a senha atual está correta
+        if not check_password_hash(usuario['senha'], senha_atual):
+            flash('Senha atual incorreta.', 'erro')
+            return redirect(url_for('minha_conta'))
+
+        # Verifica se a nova senha e a confirmação batem
+        if nova_senha != confirma_senha:
+            flash('A nova senha e a confirmação não conferem.', 'erro')
+            return redirect(url_for('minha_conta'))
+
+        # Verifica se a nova senha tem pelo menos 6 caracteres
+        if len(nova_senha) < 6:
+            flash('A nova senha deve ter pelo menos 6 caracteres.', 'erro')
+            return redirect(url_for('minha_conta'))
+
+        # Gera o hash da nova senha e salva no banco
+        nova_senha_hash = generate_password_hash(nova_senha)
+        q(
+            'UPDATE usuarios SET senha = %s WHERE id = %s',
+            (nova_senha_hash, current_user.id),
+            commit=True
+        )
+
+        flash('Senha alterada com sucesso!', 'sucesso')
+        return redirect(url_for('minha_conta'))
+
+    return render_template('minha_conta.html')
     
 # ============================================================
 # ROTA: /turmas  (GET)
@@ -894,4 +906,4 @@ def exportar_questionarios(turma_id):
 
 if __name__ == '__main__':
     init_db()
-    app.run(debug=True)
+    app.run(debug=False)

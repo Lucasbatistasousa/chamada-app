@@ -33,14 +33,22 @@
         <label class="block text-sm font-semibold text-gray-600 mb-1">
           Senha
         </label>
-        <input
-          type="password"
-          name="senha"
-          required
-          placeholder="••••••••"
-          class="w-full border border-gray-300 rounded-lg px-4 py-2
-                 focus:outline-none focus:ring-2 focus:ring-verde-claro text-sm"
-        >
+        <div class="relative">
+          <input
+            type="password"
+            name="senha"
+            id="senha"
+            required
+            placeholder="••••••••"
+            class="w-full border border-gray-300 rounded-lg px-4 py-2
+                   focus:outline-none focus:ring-2 focus:ring-verde-claro text-sm pr-10"
+          >
+          <button type="button" onclick="toggleSenha()"
+                  class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400
+                         hover:text-gray-600 transition">
+            <span id="icon-senha">👁️</span>
+          </button>
+        </div>
       </div>
 
       <button
@@ -54,4 +62,19 @@
 
   </div>
 </div>
+
+<script>
+    function toggleSenha() {
+      const input = document.getElementById('senha');
+      const icon  = document.getElementById('icon-senha');
+
+      if (input.type === 'password') {
+        input.type       = 'text';
+        icon.textContent = '🙈';
+      } else {
+        input.type       = 'password';
+        icon.textContent = '👁️';
+      }
+    }
+  </script>
 {% endblock %}

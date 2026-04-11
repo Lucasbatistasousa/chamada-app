@@ -1,0 +1,136 @@
+{% extends "base.html" %}
+{% block title %}Minha Conta — Escola de Líderes{% endblock %}
+
+{% block content %}
+
+  <!-- Cabeçalho -->
+  <div class="mb-8">
+    <a href="/"
+       class="text-sm text-gray-400 hover:text-verde-escuro transition">
+      ← Voltar para Início
+    </a>
+    <h1 class="text-2xl font-bold text-marrom mt-1">Minha Conta</h1>
+    <p class="text-gray-500 text-sm mt-1">Altere sua senha de acesso</p>
+  </div>
+
+  <!-- Card de informações -->
+  <div class="bg-white border border-gray-200 rounded-2xl shadow-sm p-6 mb-6">
+    <div class="flex items-center gap-4">
+      <div class="w-14 h-14 rounded-full bg-verde-escuro text-white
+                  flex items-center justify-center font-bold text-2xl shrink-0">
+        {{ current_user.nome[0].upper() }}
+      </div>
+      <div>
+        <div class="font-bold text-gray-700 text-lg">{{ current_user.nome }}</div>
+        <div class="text-sm text-gray-400">{{ current_user.email }}</div>
+        <span class="text-xs font-semibold px-3 py-1 rounded-full mt-1 inline-block
+          {% if current_user.perfil == 'diretor' %}bg-yellow-100 text-yellow-700
+          {% elif current_user.perfil == 'coordenador' %}bg-green-100 text-green-700
+          {% elif current_user.perfil == 'secretaria' %}bg-blue-100 text-blue-600
+          {% else %}bg-gray-100 text-gray-500{% endif %}">
+          {{ current_user.perfil }}
+        </span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Formulário de troca de senha -->
+  <div class="bg-white border border-gray-200 rounded-2xl shadow-sm p-6">
+
+    <h2 class="text-base font-bold text-verde-escuro mb-6">Trocar Senha</h2>
+
+    <form method="POST" action="/minha-conta" class="flex flex-col gap-4">
+
+      <div>
+        <label class="block text-sm font-semibold text-gray-600 mb-1">
+          Senha atual
+        </label>
+        <div class="relative">
+          <input
+            type="password"
+            name="senha_atual"
+            id="senha_atual"
+            required
+            placeholder="••••••••"
+            class="w-full border border-gray-300 rounded-lg px-4 py-2 text-sm
+                   focus:outline-none focus:ring-2 focus:ring-verde-claro pr-10"
+          >
+          <button type="button" onclick="toggleSenha('senha_atual', 'icon-atual')"
+                  class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400
+                         hover:text-gray-600 transition">
+            <span id="icon-atual">👁️</span>
+          </button>
+        </div>
+      </div>
+
+      <div>
+        <label class="block text-sm font-semibold text-gray-600 mb-1">
+          Nova senha
+        </label>
+        <div class="relative">
+          <input
+            type="password"
+            name="nova_senha"
+            id="nova_senha"
+            required
+            placeholder="Mínimo 6 caracteres"
+            class="w-full border border-gray-300 rounded-lg px-4 py-2 text-sm
+                   focus:outline-none focus:ring-2 focus:ring-verde-claro pr-10"
+          >
+          <button type="button" onclick="toggleSenha('nova_senha', 'icon-nova')"
+                  class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400
+                         hover:text-gray-600 transition">
+            <span id="icon-nova">👁️</span>
+          </button>
+        </div>
+      </div>
+
+      <div>
+        <label class="block text-sm font-semibold text-gray-600 mb-1">
+          Confirme a nova senha
+        </label>
+        <div class="relative">
+          <input
+            type="password"
+            name="confirma_senha"
+            id="confirma_senha"
+            required
+            placeholder="••••••••"
+            class="w-full border border-gray-300 rounded-lg px-4 py-2 text-sm
+                   focus:outline-none focus:ring-2 focus:ring-verde-claro pr-10"
+          >
+          <button type="button" onclick="toggleSenha('confirma_senha', 'icon-confirma')"
+                  class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400
+                         hover:text-gray-600 transition">
+            <span id="icon-confirma">👁️</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="flex justify-end mt-2">
+        <button
+          type="submit"
+          class="bg-verde-escuro text-white px-6 py-2 rounded-lg
+                 font-semibold text-sm hover:bg-opacity-90 transition">
+          Salvar nova senha
+        </button>
+      </div>
+
+    </form>
+  </div>
+
+  <script>
+    function toggleSenha(inputId, iconId) {
+      const input = document.getElementById(inputId);
+      const icon  = document.getElementById(iconId);
+
+      if (input.type === 'password') {
+        input.type    = 'text';
+        icon.textContent = '🙈';
+      } else {
+        input.type    = 'password';
+        icon.textContent = '👁️';
+      }
+    }
+  </script>
+{% endblock %}
