@@ -33,10 +33,10 @@
                     {% if not loop.last %}border-b border-gray-100{% endif %}
                     hover:bg-gray-50 transition">
 
-          <div class="flex items-center gap-3">
+          <div class="flex items-center gap-3 min-w-0">
             <!-- Avatar -->
             <div class="w-10 h-10 rounded-full flex items-center justify-center
-                        font-bold text-sm text-white
+                        font-bold text-sm text-white shrink-0
                         {% if usuario.perfil == 'diretor' %}bg-marrom
                         {% elif usuario.perfil == 'coordenador' %}bg-verde-escuro
                         {% elif usuario.perfil == 'secretaria' %}bg-blue-400
@@ -44,25 +44,24 @@
               {{ usuario.nome[0].upper() }}
             </div>
 
-            <div>
-              <div class="font-medium text-gray-700 flex items-center gap-2">
+            <div class="min-w-0">
+              <div class="font-medium text-gray-700 flex items-center gap-2 flex-wrap">
                 {{ usuario.nome }}
-                <!-- Indica o usuário logado atualmente -->
                 {% if usuario.id == current_user.id %}
                   <span class="text-xs bg-gray-100 text-gray-400
-                               px-2 py-0.5 rounded-full">
+                               px-2 py-0.5 rounded-full shrink-0">
                     você
                   </span>
                 {% endif %}
               </div>
-              <div class="text-sm text-gray-400">{{ usuario.email }}</div>
+              <div class="text-sm text-gray-400 truncate">{{ usuario.email }}</div>
             </div>
           </div>
 
-          <div class="flex items-center gap-3">
+          <div class="flex items-center gap-2 shrink-0 ml-2">
 
             <!-- Badge de perfil -->
-            <span class="text-xs font-semibold px-3 py-1 rounded-full
+            <span class="text-xs font-semibold px-3 py-1 rounded-full whitespace-nowrap
               {% if usuario.perfil == 'diretor' %}bg-yellow-100 text-yellow-700
               {% elif usuario.perfil == 'coordenador' %}bg-green-100 text-green-700
               {% elif usuario.perfil == 'secretaria' %}bg-blue-100 text-blue-600
@@ -70,13 +69,13 @@
               {{ usuario.perfil }}
             </span>
 
-            <!-- Botão deletar — não aparece para o próprio usuário -->
+            <!-- Botão deletar -->
             {% if usuario.id != current_user.id %}
               <form method="POST" action="/usuarios/{{ usuario.id }}/deletar">
                 <button
                   type="submit"
                   onclick="return confirm('Deletar o usuário {{ usuario.nome }}?')"
-                  class="text-red-400 hover:text-red-600 transition px-2">
+                  class="text-red-400 hover:text-red-600 transition px-2 shrink-0">
                   ✕
                 </button>
               </form>

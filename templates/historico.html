@@ -42,24 +42,24 @@
         <div class="px-6 py-4
                     {% if not loop.last %}border-b border-gray-100{% endif %}">
 
-          <div class="flex items-center justify-between mb-2">
+          <div class="flex items-center justify-between mb-2 gap-2">
 
-            <div class="flex items-center gap-3">
+            <div class="flex items-center gap-3 min-w-0">
               <!-- Avatar -->
               <div class="w-9 h-9 rounded-full flex items-center justify-center
-                          font-bold text-sm text-white
+                          font-bold text-sm text-white shrink-0
                           {% if f.porcentagem < 75 %}bg-red-400
                           {% else %}bg-verde-claro{% endif %}">
                 {{ f.nome[0].upper() }}
               </div>
-              <span class="font-medium text-gray-700">{{ f.nome }}</span>
+              <span class="font-medium text-gray-700 truncate">{{ f.nome }}</span>
             </div>
 
-            <div class="flex items-center gap-3">
-              <span class="text-sm text-gray-400">
+            <div class="flex items-center gap-2 shrink-0">
+              <span class="text-sm text-gray-400 whitespace-nowrap">
                 {{ f.presentes }}/{{ f.total }} aulas
               </span>
-              <span class="text-sm font-bold px-3 py-1 rounded-full
+              <span class="text-sm font-bold px-3 py-1 rounded-full whitespace-nowrap
                 {% if f.porcentagem < 75 %}
                   bg-red-100 text-red-600
                 {% else %}
@@ -67,14 +67,16 @@
                 {% endif %}">
                 {{ f.porcentagem }}%
               </span>
-              {% if f.porcentagem < 75 %}
-                <span class="text-xs text-red-400 font-medium">
-                  ⚠️ Abaixo de 75%
-                </span>
-              {% endif %}
             </div>
 
           </div>
+
+          <!-- Alerta abaixo de 75% -->
+          {% if f.porcentagem < 75 %}
+            <div class="text-xs text-red-400 font-medium mb-2 pl-12">
+              ⚠️ Abaixo de 75%
+            </div>
+          {% endif %}
 
           <!-- Barra de progresso -->
           <div class="w-full bg-gray-100 rounded-full h-2">
