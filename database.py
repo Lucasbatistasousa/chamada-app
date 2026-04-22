@@ -148,54 +148,70 @@ def init_db():
     O comando 'CREATE TABLE IF NOT EXISTS' garante que
     se a tabela já existir, não vai dar erro nem apagar os dados.
     """
-
     url = DATABASE_URL
     if url and url.startswith('postgres://'):
         url = url.replace('postgres://', 'postgresql://', 1)
 
-    # Aqui abrimos uma conexão direta (sem usar o 'g')
-    # porque init_db() roda fora do contexto de uma requisição Flask
     conn = psycopg2.connect(url)
     cur = conn.cursor()
 
     cur.execute('''
 
         -- ------------------------------------------------
+        -- TABELA: igrejas
+        -- Cada igreja é um tenant separado no sistema.
+        -- Todos os dados são isolados por igreja.
+        -- ------------------------------------------------
+        CREATE TABLE IF NOT EXISTS igrejas (
+            id        SERIAL PRIMARY KEY,
+            nome      TEXT NOT NULL,
+            ativo     INTEGER NOT NULL DEFAULT 1,
+            criado_em TEXT NOT NULL
+            -- ativo: 1 = ativa, 0 = desativada
+            -- criado_em: data de criação no formato 'YYYY-MM-DD'
+        );
+
+
+        -- ------------------------------------------------
         -- TABELA: usuarios
-        -- Guarda todos os funcionários que usam o sistema.
-        -- Cada um tem um perfil que define o que pode fazer.
+        -- Agora cada usuário pertence a uma igreja.
+        -- O super admin tem igreja_id NULL.
         -- ------------------------------------------------
         CREATE TABLE IF NOT EXISTS usuarios (
-            id       SERIAL PRIMARY KEY,
-            -- SERIAL = número que cresce automaticamente (1, 2, 3...)
-            -- PRIMARY KEY = identificador único de cada linha
-
-            nome     TEXT NOT NULL,
-            -- TEXT = texto de qualquer tamanho
-            -- NOT NULL = campo obrigatório, não pode ficar vazio
-
-            email    TEXT UNIQUE NOT NULL,
-            -- UNIQUE = não pode existir dois usuários com o mesmo email
-
-            senha    TEXT NOT NULL,
-            -- ATENÇÃO: nunca vamos guardar a senha pura aqui.
-            -- Vamos guardar o HASH da senha (uma versão embaralhada).
-            -- Ex: "abc123" vira "$2b$12$KIX..." usando bcrypt
-
-            perfil   TEXT NOT NULL
-            -- Valores possíveis: 'diretor', 'coordenador', 'secretaria', 'professor'
-            -- O perfil controla o que cada usuário pode fazer no sistema
+            id        SERIAL PRIMARY KEY,
+            nome      TEXT NOT NULL,
+            email     TEXT UNIQUE NOT NULL,
+            senha     TEXT NOT NULL,
+            perfil    TEXT NOT NULL,
+            igreja_id INTEGER REFERENCES igrejas(id) ON DELETE CASCADE
+            -- igreja_id NULL = super admin do sistema (só você)
+            -- perfil: 'superadmin', 'diretor', 'coordenador', 'secretaria', 'professor'
         );
 
 
         -- ------------------------------------------------
         -- TABELA: turmas
-        -- Representa cada turma da escola (ex: 3º Ano A).
+        -- Cada turma pertence a uma igreja.
         -- ------------------------------------------------
         CREATE TABLE IF NOT EXISTS turmas (
-            id   SERIAL PRIMARY KEY,
-            nome TEXT UNIQUE NOT NULL
-            -- UNIQUE aqui impede criar duas turmas com o mesmo nome
+            id        SERIAL PRIMARY KEY,
+            nome      TEXT NOT NULL,
+            igreja_id INTEGER NOT NULL REFERENCES igrejas(id) ON DELETE CASCADE
+        );
+
+
+        -- ------------------------------------------------
+        -- TABELA: professor_turmas
+        -- Controla quais turmas cada professor pode acessar.
+        -- Um professor pode ter várias turmas.
+        -- Uma turma pode ter vários professores.
+        -- ------------------------------------------------
+        CREATE TABLE IF NOT EXISTS professor_turmas (
+            id           SERIAL PRIMARY KEY,
+            professor_id INTEGER NOT NULL REFERENCES usuarios(id) ON DELETE CASCADE,
+            turma_id     INTEGER NOT NULL REFERENCES turmas(id) ON DELETE CASCADE,
+            ativo        INTEGER NOT NULL DEFAULT 1
+            -- ativo: 1 = professor tem acesso, 0 = acesso removido
         );
 
 
@@ -207,67 +223,82 @@ def init_db():
             id       SERIAL PRIMARY KEY,
             nome     TEXT NOT NULL,
             turma_id INTEGER NOT NULL REFERENCES turmas(id) ON DELETE CASCADE
-            -- REFERENCES turmas(id) = chave estrangeira:
-            --   o turma_id aqui deve existir na tabela turmas.
-            --   Isso garante que não existe aluno sem turma válida.
-            --
-            -- ON DELETE CASCADE = se a turma for deletada,
-            --   todos os alunos dela são deletados automaticamente.
         );
 
 
         -- ------------------------------------------------
         -- TABELA: chamadas
-        -- Registra cada vez que um professor fez a chamada.
-        -- Uma chamada = um professor + uma turma + um dia.
+        -- Registro de cada chamada feita por um professor.
         -- ------------------------------------------------
         CREATE TABLE IF NOT EXISTS chamadas (
             id           SERIAL PRIMARY KEY,
             turma_id     INTEGER NOT NULL REFERENCES turmas(id) ON DELETE CASCADE,
             professor_id INTEGER NOT NULL REFERENCES usuarios(id),
-            -- Registramos QUEM fez a chamada
-            data         TEXT NOT NULL
-            -- Guardamos a data como texto no formato 'YYYY-MM-DD'
-            -- Ex: '2026-03-30'
+            data         TEXT NOT NULL,
+            horario      TEXT NOT NULL DEFAULT '00:00'
         );
 
 
         -- ------------------------------------------------
         -- TABELA: presencas
-        -- Guarda a presença de CADA aluno em CADA chamada.
-        -- É aqui que sabemos se o aluno estava presente ou não.
+        -- Presença de cada aluno em cada chamada.
         -- ------------------------------------------------
         CREATE TABLE IF NOT EXISTS presencas (
-            id          SERIAL PRIMARY KEY,
-            chamada_id  INTEGER NOT NULL REFERENCES chamadas(id) ON DELETE CASCADE,
-            aluno_id    INTEGER NOT NULL REFERENCES alunos(id) ON DELETE CASCADE,
-            presente    INTEGER NOT NULL DEFAULT 0
-            -- DEFAULT 0 = por padrão o aluno começa como ausente (0 = falta, 1 = presente)
+            id         SERIAL PRIMARY KEY,
+            chamada_id INTEGER NOT NULL REFERENCES chamadas(id) ON DELETE CASCADE,
+            aluno_id   INTEGER NOT NULL REFERENCES alunos(id) ON DELETE CASCADE,
+            presente   INTEGER NOT NULL DEFAULT 0
         );
 
 
         -- ------------------------------------------------
         -- TABELA: questionarios
-        -- Registra quando um aluno entregou um questionário.
-        -- O professor lança a entrega com a data.
+        -- Entrega de questionários por aluno.
         -- ------------------------------------------------
         CREATE TABLE IF NOT EXISTS questionarios (
             id           SERIAL PRIMARY KEY,
             aluno_id     INTEGER NOT NULL REFERENCES alunos(id) ON DELETE CASCADE,
             professor_id INTEGER NOT NULL REFERENCES usuarios(id),
-            -- Registramos QUAL professor recebeu o questionário
             descricao    TEXT NOT NULL,
-            -- Nome ou título do questionário. Ex: 'Questionário Cap. 3 - Matemática'
             data_entrega TEXT NOT NULL
-            -- Data em que o aluno entregou. Ex: '2026-03-28'
+        );
+
+
+        -- ------------------------------------------------
+        -- TABELA: planos
+        -- Planos disponíveis no SaaS.
+        -- ------------------------------------------------
+        CREATE TABLE IF NOT EXISTS planos (
+            id             SERIAL PRIMARY KEY,
+            nome           TEXT NOT NULL,
+            preco          NUMERIC(10,2) NOT NULL DEFAULT 0,
+            limite_turmas  INTEGER NOT NULL DEFAULT 5,
+            limite_alunos  INTEGER NOT NULL DEFAULT 50,
+            ativo          INTEGER NOT NULL DEFAULT 1
+        );
+
+
+        -- ------------------------------------------------
+        -- TABELA: assinaturas
+        -- Vínculo entre uma igreja e um plano.
+        -- ------------------------------------------------
+        CREATE TABLE IF NOT EXISTS assinaturas (
+            id         SERIAL PRIMARY KEY,
+            igreja_id  INTEGER NOT NULL REFERENCES igrejas(id) ON DELETE CASCADE,
+            plano_id   INTEGER NOT NULL REFERENCES planos(id),
+            status     TEXT NOT NULL DEFAULT 'ativo',
+            inicio     TEXT NOT NULL,
+            fim        TEXT,
+            stripe_id  TEXT
+            -- status: 'ativo', 'cancelado', 'inadimplente'
+            -- stripe_id: ID da assinatura no Stripe para pagamentos futuros
         );
 
     ''')
 
-    conn.commit()   # confirma a criação das tabelas no banco
+    conn.commit()
     cur.close()
     conn.close()
-
     print('✅ Banco de dados inicializado com sucesso!')
 
 

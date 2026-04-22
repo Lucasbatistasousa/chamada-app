@@ -25,13 +25,15 @@ from database import q
 # ============================================================
 class Usuario(UserMixin):
 
-    def __init__(self, id, nome, email, perfil):
+    def __init__(self, id, nome, email, perfil, igreja_id):
         # __init__ é o construtor — roda quando criamos um Usuario
         # Guardamos as informações do usuário como atributos do objeto
         self.id     = id
         self.nome   = nome
         self.email  = email
         self.perfil = perfil
+        self.perfil = igreja_id
+        # igreja_id None = superadmin
         # perfil pode ser: 'diretor', 'coordenador', 'secretaria', 'professor'
 
     def pode_gerenciar_alunos(self):
@@ -40,7 +42,20 @@ class Usuario(UserMixin):
         adicionar ou remover alunos e turmas.
         Somente diretor, coordenador e secretaria podem fazer isso.
         """
-        return self.perfil in ['diretor', 'coordenador', 'secretaria']
+        return self.perfil in ['superadmin', 'diretor', 'coordenador', 'secretaria']
+    
+    def pode_gerenciar_usuarios(self):
+        """
+        Retorna True se pode criar e remover usuários da sua igreja.
+        """
+        return self.perfil in ['superadmin', 'diretor', 'coordenador']
+    
+    def pode_gerenciar_igrejas(self):
+        """
+        Retorna True se pode criar e gerenciar igrejas.
+        Somente o superadmin pode fazer isso.
+        """
+        return self.perfil == 'superadmin'
 
     def e_professor(self):
         """
@@ -48,6 +63,9 @@ class Usuario(UserMixin):
         Professores podem fazer chamada e lançar questionários.
         """
         return self.perfil == 'professor'
+    
+    def e_superadmin(self):
+        return self.perfil == 'superadmin'
 
 
 # ============================================================
@@ -75,8 +93,9 @@ def carregar_usuario(user_id):
 
     # Cria e retorna um objeto Usuario com os dados do banco
     return Usuario(
-        id     = usuario['id'],
-        nome   = usuario['nome'],
-        email  = usuario['email'],
-        perfil = usuario['perfil']
+        id        = usuario['id'],
+        nome      = usuario['nome'],
+        email     = usuario['email'],
+        perfil    = usuario['perfil'],
+        igreja_id = usuario['igreja_id']
     )
