@@ -169,12 +169,20 @@ def index():
 @login_required
 def usuarios():
 
-    # Somente diretor e coordenador podem gerenciar usuários
-    if current_user.perfil not in ['diretor', 'coordenador']:
+    if not current_user.pode_gerenciar_usuarios():
         flash('Você não tem permissão para acessar essa página.', 'erro')
         return redirect(url_for('index'))
 
-    lista_usuarios = q('SELECT * FROM usuarios ORDER BY nome')
+    # Superadmin vê todos os usuários
+    # Diretor e coordenador veem só os usuários da sua igreja
+    if current_user.e_superadmin():
+        lista_usuarios = q('SELECT * FROM usuarios ORDER BY nome')
+    else:
+        lista_usuarios = q(
+            'SELECT * FROM usuarios WHERE igreja_id = %s ORDER BY nome',
+            (current_user.igreja_id,)
+        )
+
     return render_template('usuarios.html', usuarios=lista_usuarios)
 
 

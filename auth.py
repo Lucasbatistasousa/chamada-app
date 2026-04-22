@@ -46,7 +46,9 @@ class Usuario(UserMixin):
     
     def pode_gerenciar_usuarios(self):
         """
-        Retorna True se pode criar e remover usuários da sua igreja.
+        Retorna True se pode criar e remover usuários.
+        - Superadmin gerencia usuários de qualquer igreja
+        - Diretor e coordenador gerenciam usuários da sua própria igreja
         """
         return self.perfil in ['superadmin', 'diretor', 'coordenador']
     
