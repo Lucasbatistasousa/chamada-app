@@ -313,6 +313,16 @@ def migrate_db():
     conn = psycopg2.connect(url)
     cur = conn.cursor()
 
+     # Cria tabela igrejas se não existir
+    cur.execute('''
+        CREATE TABLE IF NOT EXISTS igrejas (
+            id        SERIAL PRIMARY KEY,
+            nome      TEXT NOT NULL,
+            ativo     INTEGER NOT NULL DEFAULT 1,
+            criado_em TEXT NOT NULL
+        );
+    ''')
+    
     # Adiciona a coluna horario na tabela chamadas se ainda não existir
     cur.execute('''
         ALTER TABLE chamadas
