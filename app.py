@@ -213,13 +213,17 @@ def criar_usuario():
         flash('Perfil inválido.', 'erro')
         return redirect(url_for('usuarios'))
 
+    # Superadmin pode criar usuários sem igreja
+    # Diretor e coordenador criam usuários vinculados à sua igreja
+    igreja_id = None if current_user.e_superadmin() else current_user.igreja_id
+    
     senha_hash = generate_password_hash(senha)
 
     try:
         q(
-            '''INSERT INTO usuarios (nome, email, senha, perfil)
-               VALUES (%s, %s, %s, %s)''',
-            (nome, email, senha_hash, perfil),
+            '''INSERT INTO usuarios (nome, email, senha, perfil, igreja_id)
+               VALUES (%s, %s, %s, %s, %s)''',
+            (nome, email, senha_hash, perfil, igreja_id),
             commit=True
         )
         flash(f'Usuário "{nome}" criado com sucesso!', 'sucesso')
