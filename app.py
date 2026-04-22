@@ -127,7 +127,7 @@ def login():
             id     = usuario['id'],
             nome   = usuario['nome'],
             email  = usuario['email'],
-            perfil = usuario['perfil']
+            perfil = usuario['perfil'],
             igreja_id = usuario['igreja_id']
         )
         login_user(usuario_obj)
