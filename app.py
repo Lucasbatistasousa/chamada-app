@@ -128,6 +128,7 @@ def login():
             nome   = usuario['nome'],
             email  = usuario['email'],
             perfil = usuario['perfil']
+            igreja_id = usuario['igreja_id']
         )
         login_user(usuario_obj)
         # A partir daqui, current_user terá os dados desse usuário
