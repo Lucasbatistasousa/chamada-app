@@ -44,7 +44,7 @@
         <div class="hidden sm:flex items-center gap-6 text-sm font-medium">
           <a href="/" class="hover:text-verde-claro transition">Início</a>
           <a href="/turmas" class="hover:text-verde-claro transition">Turmas</a>
-          {% if current_user.perfil in ['diretor', 'coordenador'] %}
+          {% if current_user.perfil in ['superadmin''diretor', 'coordenador'] %}
           <a href="/usuarios" class="hover:text-verde-claro transition"
             >Usuários</a
           >

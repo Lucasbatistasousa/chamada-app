@@ -25,7 +25,7 @@
       </div>
     </a>
 
-    {% if current_user.perfil in ['diretor', 'coordenador'] %}
+    {% if current_user.perfil in ['superadmin', 'diretor', 'coordenador'] %}
       <a href="/usuarios"
          class="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm
                 hover:shadow-md hover:border-verde-claro transition">
