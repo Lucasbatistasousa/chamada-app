@@ -318,6 +318,18 @@ def migrate_db():
         ALTER TABLE chamadas
         ADD COLUMN IF NOT EXISTS horario TEXT NOT NULL DEFAULT '00:00';
     ''')
+    
+     # Adiciona igreja_id na tabela usuarios se não existir
+    cur.execute('''
+        ALTER TABLE usuarios
+        ADD COLUMN IF NOT EXISTS igreja_id INTEGER REFERENCES igrejas(id) ON DELETE CASCADE;
+    ''')
+
+    # Adiciona igreja_id na tabela turmas se não existir
+    cur.execute('''
+        ALTER TABLE turmas
+        ADD COLUMN IF NOT EXISTS igreja_id INTEGER REFERENCES igrejas(id) ON DELETE CASCADE;
+    ''')
 
     conn.commit()
     cur.close()
