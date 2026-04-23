@@ -43,13 +43,17 @@
         {% if current_user.is_authenticated %}
         <div class="hidden sm:flex items-center gap-6 text-sm font-medium">
           <a href="/" class="hover:text-verde-claro transition">Início</a>
+
           <a href="/turmas" class="hover:text-verde-claro transition">Turmas</a>
+
           {% if current_user.perfil in ['superadmin''diretor', 'coordenador'] %}
           <a href="/usuarios" class="hover:text-verde-claro transition">Usuários</a>
           {% endif %}
+
           {% if current_user.e_superadmin() %}
             <a href="/igrejas" class="hover:text-verde-claro transition">Igrejas</a>
           {% endif %}
+          
           <span class="text-gray-300">
             {{ current_user.nome }}
             <span class="text-xs bg-marrom px-2 py-0.5 rounded-full ml-1">

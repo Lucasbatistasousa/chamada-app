@@ -294,10 +294,11 @@ def criar_usuario():
         flash('Você não tem permissão para fazer isso.', 'erro')
         return redirect(url_for('index'))
 
-    nome   = request.form['nome'].strip()
-    email  = request.form['email'].strip()
-    senha  = request.form['senha'].strip()
-    perfil = request.form['perfil']
+    nome       = request.form['nome'].strip()
+    email      = request.form['email'].strip()
+    senha      = request.form['senha'].strip()
+    perfil     = request.form['perfil']
+    igreja_id  = request.form['igreja_id']
 
     if not nome or not email or not senha or not perfil:
         flash('Todos os campos são obrigatórios.', 'erro')
