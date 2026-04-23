@@ -676,14 +676,15 @@ def adicionar_aluno(turma_id):
         return redirect(url_for('turmas'))
 
     nome = request.form['nome'].strip()
+    celula = request.form.get('celula', '').strip()
 
     if not nome:
         flash('O nome do aluno não pode ser vazio.', 'erro')
         return redirect(url_for('alunos', turma_id=turma_id))
 
     q(
-        'INSERT INTO alunos (nome, turma_id) VALUES (%s, %s)',
-        (nome, turma_id),
+        'INSERT INTO alunos (nome, turma_id, celula) VALUES (%s, %s, %s)',
+        (nome, turma_id, celula or None),
         commit=True
     )
     flash(f'Aluno "{nome}" adicionado!', 'sucesso')

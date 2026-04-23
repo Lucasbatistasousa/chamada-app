@@ -340,6 +340,12 @@ def migrate_db():
         ALTER TABLE turmas
         ADD COLUMN IF NOT EXISTS igreja_id INTEGER REFERENCES igrejas(id) ON DELETE CASCADE;
     ''')
+    
+    # Adiciona coluna celula na tabela alunos
+    cur.execute('''
+        ALTER TABLE alunos
+        ADD COLUMN IF NOT EXISTS celula TEXT;
+    ''')
 
     conn.commit()
     cur.close()

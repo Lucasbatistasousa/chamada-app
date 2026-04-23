@@ -67,7 +67,12 @@
                         flex items-center justify-center font-bold text-sm">
               {{ aluno.nome[0].upper() }}
             </div>
-            <span class="font-medium text-gray-700">{{ aluno.nome }}</span>
+            <div>
+                <div class="font-medium text-gray-700">{{ aluno.nome }}</div>
+                {% if aluno.celula %}
+                  <div class="text-xs text-gray-400">{{ aluno.celula }}</div>
+                {% endif %}
+            </div>
           </div>
 
           <!-- Botão remover -->
@@ -124,6 +129,19 @@
               placeholder="Ex: João da Silva"
               class="w-full border border-gray-300 rounded-lg px-4 py-2
                      focus:outline-none focus:ring-2 focus:ring-verde-claro text-sm"
+            >
+          </div>
+
+          <div>
+            <label class="block text-sm font-semibold text-gray-600 mb-1">
+              Célula / Equipe
+            </label>
+            <input
+              type="text"
+              name="celula"
+              placeholder="Ex: Geração Wake"
+              class="w-full border border-gray-300 rounded-lg px-4 py-2 text-sm
+                     focus:outline-none focus:ring-2 focus:ring-verde-claro"
             >
           </div>
 
