@@ -338,7 +338,7 @@ def criar_usuario():
 @login_required
 def deletar_usuario(usuario_id):
 
-    if current_user.perfil not in ['diretor', 'coordenador']:
+    if current_user.perfil not in ['superadmin','diretor', 'coordenador']:
         flash('Você não tem permissão para fazer isso.', 'erro')
         return redirect(url_for('usuarios'))
 
