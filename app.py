@@ -290,7 +290,7 @@ def usuarios():
 @login_required
 def criar_usuario():
 
-    if current_user.perfil not in ['diretor', 'coordenador']:
+    if current_user.perfil not in ['superadmin', 'diretor', 'coordenador']:
         flash('Você não tem permissão para fazer isso.', 'erro')
         return redirect(url_for('index'))
 
