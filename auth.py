@@ -32,7 +32,7 @@ class Usuario(UserMixin):
         self.nome   = nome
         self.email  = email
         self.perfil = perfil
-        self.igreja = igreja_id
+        self.igreja_id = igreja_id
         # igreja_id None = superadmin
         # perfil pode ser: 'diretor', 'coordenador', 'secretaria', 'professor'
 

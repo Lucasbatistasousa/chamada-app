@@ -298,7 +298,6 @@ def criar_usuario():
     email      = request.form['email'].strip()
     senha      = request.form['senha'].strip()
     perfil     = request.form['perfil']
-    igreja_id  = request.form['igreja_id']
 
     if not nome or not email or not senha or not perfil:
         flash('Todos os campos são obrigatórios.', 'erro')
