@@ -1,0 +1,105 @@
+{% extends "base.html" %}
+{% block title %}Professores — {{ turma.nome }}{% endblock %}
+
+{% block content %}
+
+  <!-- Cabeçalho -->
+  <div class="mb-8">
+    <a href="/turmas/{{ turma.id }}/alunos"
+       class="text-sm text-gray-400 hover:text-verde-escuro transition">
+      ← Voltar para Alunos
+    </a>
+    <h1 class="text-2xl font-bold text-marrom mt-1">
+      Professores — {{ turma.nome }}
+    </h1>
+    <p class="text-gray-500 text-sm mt-1">
+      Gerencie quais professores têm acesso a essa turma
+    </p>
+  </div>
+
+  <!-- Adicionar professor -->
+  {% if professores_disponiveis %}
+    <div class="bg-white border border-gray-200 rounded-2xl shadow-sm p-6 mb-6">
+
+      <h2 class="text-base font-bold text-verde-escuro mb-4">
+        Designar Professor
+      </h2>
+
+      <form method="POST"
+            action="/turmas/{{ turma.id }}/professores/adicionar"
+            class="flex gap-3 flex-wrap">
+
+        <select
+          name="professor_id"
+          required
+          class="flex-1 border border-gray-300 rounded-lg px-4 py-2 text-sm
+                 focus:outline-none focus:ring-2 focus:ring-verde-claro bg-white"
+        >
+          <option value="">Selecione um professor</option>
+          {% for prof in professores_disponiveis %}
+            <option value="{{ prof.id }}">{{ prof.nome }}</option>
+          {% endfor %}
+        </select>
+
+        <button
+          type="submit"
+          class="bg-verde-escuro text-white px-4 py-2 rounded-lg
+                 text-sm font-semibold hover:bg-opacity-90 transition shrink-0">
+          + Designar
+        </button>
+
+      </form>
+
+    </div>
+  {% endif %}
+
+  <!-- Professores designados -->
+  <div class="bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden">
+
+    <div class="px-6 py-4 border-b border-gray-100">
+      <h2 class="text-base font-bold text-verde-escuro">
+        Professores Designados
+      </h2>
+    </div>
+
+    {% if professores_designados %}
+      {% for prof in professores_designados %}
+        <div class="flex items-center justify-between px-6 py-4
+                    {% if not loop.last %}border-b border-gray-100{% endif %}
+                    hover:bg-gray-50 transition">
+
+          <div class="flex items-center gap-3 min-w-0">
+            <div class="w-9 h-9 rounded-full bg-verde-claro text-white
+                        flex items-center justify-center font-bold text-sm shrink-0">
+              {{ prof.nome[0].upper() }}
+            </div>
+            <div class="min-w-0">
+              <div class="font-medium text-gray-700">{{ prof.nome }}</div>
+              <div class="text-sm text-gray-400 truncate">{{ prof.email }}</div>
+            </div>
+          </div>
+
+          <form method="POST"
+                action="/turmas/professores/{{ prof.vinculo_id }}/remover">
+            <button
+              type="submit"
+              onclick="return confirm('Remover {{ prof.nome }} dessa turma?')"
+              class="text-red-400 hover:text-red-600 transition px-2 shrink-0">
+              ✕
+            </button>
+          </form>
+
+        </div>
+      {% endfor %}
+
+    {% else %}
+      <div class="text-center py-12 text-gray-400">
+        <div class="text-4xl mb-3">👨‍🏫</div>
+        <div class="font-semibold">Nenhum professor designado ainda</div>
+        <p class="text-sm mt-1">Selecione um professor acima para designar</p>
+      </div>
+    {% endif %}
+
+  </div>
+
+{% endblock %}

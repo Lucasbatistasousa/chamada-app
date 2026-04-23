@@ -29,6 +29,13 @@
 
   <!-- Links rápidos -->
   <div class="flex gap-3 mb-6 flex-wrap">
+    {% if current_user.pode_gerenciar_alunos() %}
+      <a href="/turmas/{{ turma.id }}/professores"
+        class="bg-white border border-gray-200 text-gray-700 px-4 py-2
+                rounded-lg text-sm font-semibold hover:border-verde-claro transition">
+        👨‍🏫 Professores
+      </a>
+    {% endif %}
     <a href="/turmas/{{ turma.id }}/chamada"
        class="bg-verde-escuro text-white px-4 py-2 rounded-lg
               text-sm font-semibold hover:bg-opacity-90 transition">

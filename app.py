@@ -400,6 +400,127 @@ def minha_conta():
     return render_template('minha_conta.html')
     
 # ============================================================
+# ROTA: /turmas/<id>/professores  (GET)
+# Mostra os professores designados para uma turma
+# e permite adicionar/remover.
+# ============================================================
+@app.route('/turmas/<int:turma_id>/professores')
+@login_required
+def professores_turma(turma_id):
+
+    if not current_user.pode_gerenciar_alunos():
+        flash('Você não tem permissão para acessar essa página.', 'erro')
+        return redirect(url_for('turmas'))
+
+    turma = q('SELECT * FROM turmas WHERE id = %s', (turma_id,), one=True)
+
+    if turma is None:
+        flash('Turma não encontrada.', 'erro')
+        return redirect(url_for('turmas'))
+
+    # Verifica se a turma pertence à igreja do usuário
+    if not current_user.e_superadmin() and turma['igreja_id'] != current_user.igreja_id:
+        flash('Você não tem acesso a essa turma.', 'erro')
+        return redirect(url_for('turmas'))
+
+    # Professores já designados para essa turma
+    professores_designados = q('''
+        SELECT u.id, u.nome, u.email, pt.id AS vinculo_id, pt.ativo
+        FROM professor_turmas pt
+        JOIN usuarios u ON u.id = pt.professor_id
+        WHERE pt.turma_id = %s
+        ORDER BY u.nome
+    ''', (turma_id,))
+
+    # Professores disponíveis da mesma igreja para adicionar
+    if current_user.e_superadmin():
+        professores_disponiveis = q('''
+            SELECT * FROM usuarios
+            WHERE perfil = 'professor'
+            AND id NOT IN (
+                SELECT professor_id FROM professor_turmas WHERE turma_id = %s
+            )
+            ORDER BY nome
+        ''', (turma_id,))
+    else:
+        professores_disponiveis = q('''
+            SELECT * FROM usuarios
+            WHERE perfil = 'professor'
+            AND igreja_id = %s
+            AND id NOT IN (
+                SELECT professor_id FROM professor_turmas WHERE turma_id = %s
+            )
+            ORDER BY nome
+        ''', (current_user.igreja_id, turma_id))
+
+    return render_template(
+        'professores_turma.html',
+        turma                  = turma,
+        professores_designados = professores_designados,
+        professores_disponiveis= professores_disponiveis
+    )
+
+
+# ============================================================
+# ROTA: /turmas/<id>/professores/adicionar  (POST)
+# Designa um professor para uma turma.
+# ============================================================
+@app.route('/turmas/<int:turma_id>/professores/adicionar', methods=['POST'])
+@login_required
+def adicionar_professor_turma(turma_id):
+
+    if not current_user.pode_gerenciar_alunos():
+        flash('Você não tem permissão para fazer isso.', 'erro')
+        return redirect(url_for('professores_turma', turma_id=turma_id))
+
+    professor_id = request.form['professor_id']
+
+    # Verifica se já existe o vínculo
+    vinculo = q('''
+        SELECT id FROM professor_turmas
+        WHERE professor_id = %s AND turma_id = %s
+    ''', (professor_id, turma_id), one=True)
+
+    if vinculo:
+        # Reativa o vínculo se estava inativo
+        q('''
+            UPDATE professor_turmas SET ativo = 1
+            WHERE professor_id = %s AND turma_id = %s
+        ''', (professor_id, turma_id), commit=True)
+    else:
+        q('''
+            INSERT INTO professor_turmas (professor_id, turma_id, ativo)
+            VALUES (%s, %s, 1)
+        ''', (professor_id, turma_id), commit=True)
+
+    flash('Professor designado com sucesso!', 'sucesso')
+    return redirect(url_for('professores_turma', turma_id=turma_id))
+
+
+# ============================================================
+# ROTA: /turmas/professores/<vinculo_id>/remover  (POST)
+# Remove o acesso de um professor a uma turma.
+# ============================================================
+@app.route('/turmas/professores/<int:vinculo_id>/remover', methods=['POST'])
+@login_required
+def remover_professor_turma(vinculo_id):
+
+    if not current_user.pode_gerenciar_alunos():
+        flash('Você não tem permissão para fazer isso.', 'erro')
+        return redirect(url_for('turmas'))
+
+    # Busca o vínculo para saber qual turma redirecionar
+    vinculo = q(
+        'SELECT * FROM professor_turmas WHERE id = %s',
+        (vinculo_id,),
+        one=True
+    )
+
+    q('DELETE FROM professor_turmas WHERE id = %s', (vinculo_id,), commit=True)
+    flash('Professor removido da turma.', 'sucesso')
+    return redirect(url_for('professores_turma', turma_id=vinculo['turma_id'])) 
+    
+# ============================================================
 # ROTA: /turmas  (GET)
 # Lista turmas filtradas por igreja/professor
 # ============================================================
