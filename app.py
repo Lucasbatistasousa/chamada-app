@@ -87,6 +87,100 @@ def user_loader(user_id):
     # Essa função roda automaticamente em cada requisição
     return carregar_usuario(user_id)
 
+# ============================================================
+# ROTA: /igrejas  (GET)
+# Lista todas as igrejas do sistema.
+# Somente superadmin pode acessar.
+# ============================================================
+@app.route('/igrejas')
+@login_required
+def igrejas():
+
+    if not current_user.pode_gerenciar_igrejas():
+        flash('Você não tem permissão para acessar essa página.', 'erro')
+        return redirect(url_for('index'))
+
+    lista_igrejas = q('''
+        SELECT i.*, u.nome AS diretor_nome
+        FROM igrejas i
+        LEFT JOIN usuarios u ON u.igreja_id = i.id AND u.perfil = 'diretor'
+        ORDER BY i.nome
+    ''')
+
+    return render_template('igrejas.html', igrejas=lista_igrejas)
+
+
+# ============================================================
+# ROTA: /igrejas/criar  (POST)
+# Cria uma nova igreja e um diretor para ela.
+# Somente superadmin pode fazer isso.
+# ============================================================
+@app.route('/igrejas/criar', methods=['POST'])
+@login_required
+def criar_igreja():
+
+    if not current_user.pode_gerenciar_igrejas():
+        flash('Você não tem permissão para fazer isso.', 'erro')
+        return redirect(url_for('index'))
+
+    nome_igreja    = request.form['nome_igreja'].strip()
+    nome_diretor   = request.form['nome_diretor'].strip()
+    email_diretor  = request.form['email_diretor'].strip()
+    senha_diretor  = request.form['senha_diretor'].strip()
+
+    if not nome_igreja or not nome_diretor or not email_diretor or not senha_diretor:
+        flash('Todos os campos são obrigatórios.', 'erro')
+        return redirect(url_for('igrejas'))
+
+    try:
+        # Cria a igreja
+        q(
+            'INSERT INTO igrejas (nome, ativo, criado_em) VALUES (%s, %s, %s)',
+            (nome_igreja, 1, date.today().strftime('%Y-%m-%d')),
+            commit=True
+        )
+
+        # Busca o ID da igreja criada
+        igreja = q(
+            'SELECT id FROM igrejas WHERE nome = %s',
+            (nome_igreja,),
+            one=True
+        )
+
+        # Cria o diretor vinculado à igreja
+        senha_hash = generate_password_hash(senha_diretor)
+        q(
+            '''INSERT INTO usuarios (nome, email, senha, perfil, igreja_id)
+               VALUES (%s, %s, %s, %s, %s)''',
+            (nome_diretor, email_diretor, senha_hash, 'diretor', igreja['id']),
+            commit=True
+        )
+
+        flash(f'Igreja "{nome_igreja}" criada com sucesso!', 'sucesso')
+
+    except Exception as e:
+        get_db().rollback()
+        flash('Erro ao criar igreja. Verifique se o email do diretor já existe.', 'erro')
+
+    return redirect(url_for('igrejas'))
+
+
+# ============================================================
+# ROTA: /igrejas/<id>/deletar  (POST)
+# Deleta uma igreja e todos os dados vinculados.
+# Somente superadmin pode fazer isso.
+# ============================================================
+@app.route('/igrejas/<int:igreja_id>/deletar', methods=['POST'])
+@login_required
+def deletar_igreja(igreja_id):
+
+    if not current_user.pode_gerenciar_igrejas():
+        flash('Você não tem permissão para fazer isso.', 'erro')
+        return redirect(url_for('igrejas'))
+
+    q('DELETE FROM igrejas WHERE id = %s', (igreja_id,), commit=True)
+    flash('Igreja removida.', 'sucesso')
+    return redirect(url_for('igrejas'))
 
 # ============================================================
 # ROTA: /login  (GET e POST)

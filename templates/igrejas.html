@@ -1,0 +1,173 @@
+{% extends "base.html" %}
+{% block title %}Igrejas — Gestão de Turmas{% endblock %}
+
+{% block content %}
+
+  <!-- Cabeçalho -->
+  <div class="flex items-center justify-between mb-8">
+    <div>
+      <a href="/"
+         class="text-sm text-gray-400 hover:text-verde-escuro transition">
+        ← Voltar para Início
+      </a>
+      <h1 class="text-2xl font-bold text-marrom mt-1">Igrejas</h1>
+      <p class="text-gray-500 text-sm mt-1">
+        Gerencie as igrejas cadastradas no sistema
+      </p>
+    </div>
+
+    <button
+      onclick="document.getElementById('modal-igreja').classList.remove('hidden')"
+      class="bg-verde-escuro text-white px-4 py-2 rounded-lg
+             font-semibold text-sm hover:bg-opacity-90 transition">
+      + Nova Igreja
+    </button>
+  </div>
+
+  <!-- Lista de igrejas -->
+  {% if igrejas %}
+    <div class="flex flex-col gap-3">
+      {% for igreja in igrejas %}
+        <div class="bg-white border border-gray-200 rounded-2xl shadow-sm p-5">
+
+          <div class="flex items-center justify-between">
+            <div>
+              <div class="font-bold text-verde-escuro text-lg">
+                {{ igreja.nome }}
+              </div>
+              <div class="text-sm text-gray-400 mt-1">
+                {% if igreja.diretor_nome %}
+                  Diretor: {{ igreja.diretor_nome }}
+                {% else %}
+                  Sem diretor cadastrado
+                {% endif %}
+              </div>
+              <div class="text-xs text-gray-400 mt-0.5">
+                Criada em {{ igreja.criado_em }}
+              </div>
+            </div>
+
+            <div class="flex items-center gap-3">
+              <span class="text-xs font-semibold px-3 py-1 rounded-full
+                {% if igreja.ativo %}bg-green-100 text-green-700
+                {% else %}bg-red-100 text-red-500{% endif %}">
+                {% if igreja.ativo %}Ativa{% else %}Inativa{% endif %}
+              </span>
+
+              <form method="POST" action="/igrejas/{{ igreja.id }}/deletar">
+                <button
+                  type="submit"
+                  onclick="return confirm('Deletar a igreja {{ igreja.nome }} e todos os dados?')"
+                  class="text-red-400 hover:text-red-600 transition px-2">
+                  ✕
+                </button>
+              </form>
+            </div>
+          </div>
+
+        </div>
+      {% endfor %}
+    </div>
+
+  {% else %}
+    <div class="text-center py-16 text-gray-400">
+      <div class="text-5xl mb-4">⛪</div>
+      <div class="font-semibold text-lg">Nenhuma igreja cadastrada ainda</div>
+      <p class="text-sm mt-1">Clique em <strong>+ Nova Igreja</strong> para começar</p>
+    </div>
+  {% endif %}
+
+
+  <!-- ── MODAL NOVA IGREJA ── -->
+  <div id="modal-igreja"
+       class="hidden fixed inset-0 bg-black bg-opacity-40
+              flex items-center justify-center z-50">
+
+    <div class="bg-white rounded-2xl shadow-xl p-8 w-full max-w-md mx-4
+                max-h-screen overflow-y-auto">
+
+      <h2 class="text-xl font-bold text-marrom mb-6">Nova Igreja</h2>
+
+      <form method="POST" action="/igrejas/criar" class="flex flex-col gap-4">
+
+        <div>
+          <label class="block text-sm font-semibold text-gray-600 mb-1">
+            Nome da Igreja
+          </label>
+          <input
+            type="text"
+            name="nome_igreja"
+            required
+            placeholder="Ex: Monte Sião Central"
+            class="w-full border border-gray-300 rounded-lg px-4 py-2 text-sm
+                   focus:outline-none focus:ring-2 focus:ring-verde-claro"
+          >
+        </div>
+
+        <hr class="border-gray-100">
+        <p class="text-sm font-semibold text-gray-500">Dados do Diretor</p>
+
+        <div>
+          <label class="block text-sm font-semibold text-gray-600 mb-1">
+            Nome do Diretor
+          </label>
+          <input
+            type="text"
+            name="nome_diretor"
+            required
+            placeholder="Ex: João Ferreira"
+            class="w-full border border-gray-300 rounded-lg px-4 py-2 text-sm
+                   focus:outline-none focus:ring-2 focus:ring-verde-claro"
+          >
+        </div>
+
+        <div>
+          <label class="block text-sm font-semibold text-gray-600 mb-1">
+            Email do Diretor
+          </label>
+          <input
+            type="email"
+            name="email_diretor"
+            required
+            placeholder="joaodiretor@escoladelíderes.com"
+            class="w-full border border-gray-300 rounded-lg px-4 py-2 text-sm
+                   focus:outline-none focus:ring-2 focus:ring-verde-claro"
+          >
+        </div>
+
+        <div>
+          <label class="block text-sm font-semibold text-gray-600 mb-1">
+            Senha do Diretor
+          </label>
+          <input
+            type="password"
+            name="senha_diretor"
+            required
+            placeholder="Mínimo 6 caracteres"
+            class="w-full border border-gray-300 rounded-lg px-4 py-2 text-sm
+                   focus:outline-none focus:ring-2 focus:ring-verde-claro"
+          >
+        </div>
+
+        <div class="flex gap-3 justify-end mt-2">
+          <button
+            type="button"
+            onclick="document.getElementById('modal-igreja').classList.add('hidden')"
+            class="px-4 py-2 rounded-lg border border-gray-300 text-sm
+                   text-gray-600 hover:bg-gray-50 transition">
+            Cancelar
+          </button>
+          <button
+            type="submit"
+            class="bg-verde-escuro text-white px-4 py-2 rounded-lg
+                   text-sm font-semibold hover:bg-opacity-90 transition">
+            Criar
+          </button>
+        </div>
+
+      </form>
+
+    </div>
+  </div>
+
+{% endblock %}

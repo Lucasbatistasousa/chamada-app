@@ -37,6 +37,18 @@
       </a>
     {% endif %}
 
+    {% if current_user.e_superadmin() %}
+      <a href="/igrejas"
+        class="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm
+                hover:shadow-md hover:border-verde-claro transition">
+        <div class="text-3xl mb-3">⛪</div>
+        <div class="font-semibold text-verde-escuro text-lg">Igrejas</div>
+        <div class="text-gray-500 text-sm mt-1">
+          Gerencie as igrejas cadastradas
+        </div>
+      </a>
+    {% endif %}
+
   </div>
 
 {% endblock %}
