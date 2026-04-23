@@ -401,57 +401,87 @@ def minha_conta():
     
 # ============================================================
 # ROTA: /turmas  (GET)
-# Lista todas as turmas.
-# Qualquer usuário logado pode ver.
+# Lista turmas filtradas por igreja/professor
 # ============================================================
 @app.route('/turmas')
 @login_required
 def turmas():
-    todas_turmas = q('SELECT * FROM turmas ORDER BY nome')
-    return render_template('turmas.html', turmas=todas_turmas)
 
+    # Superadmin vê todas as turmas
+    if current_user.e_superadmin():
+        todas_turmas = q('SELECT t.*, i.nome AS igreja_nome FROM turmas t LEFT JOIN igrejas i ON i.id = t.igreja_id ORDER BY t.nome')
+        todas_igrejas = q('SELECT * FROM igrejas ORDER BY nome') if current_user.e_superadmin() else []
+
+    # Professor vê só as turmas que foi designado
+    elif current_user.e_professor():
+        todas_turmas = q('''
+            SELECT t.*, i.nome AS igreja_nome
+            FROM turmas t
+            LEFT JOIN igrejas i ON i.id = t.igreja_id
+            JOIN professor_turmas pt ON pt.turma_id = t.id
+            WHERE pt.professor_id = %s AND pt.ativo = 1
+            ORDER BY t.nome
+        ''', (current_user.id,))
+
+    # Diretor, coordenador e secretaria veem só turmas da sua igreja
+    else:
+        todas_turmas = q('''
+            SELECT t.*, i.nome AS igreja_nome
+            FROM turmas t
+            LEFT JOIN igrejas i ON i.id = t.igreja_id
+            WHERE t.igreja_id = %s
+            ORDER BY t.nome
+        ''', (current_user.igreja_id,))
+    
+     # Busca igrejas para o superadmin selecionar no modal
+    todas_igrejas = q('SELECT * FROM igrejas ORDER BY nome') if current_user.e_superadmin() else []
+
+    return render_template('turmas.html', turmas=todas_turmas, todas_igrejas=todas_igrejas)
 
 # ============================================================
 # ROTA: /turmas/criar  (POST)
-# Cria uma nova turma.
-# Somente diretor, coordenador e secretaria podem fazer isso.
 # ============================================================
 @app.route('/turmas/criar', methods=['POST'])
 @login_required
 def criar_turma():
 
-    # Verifica se o usuário tem permissão
     if not current_user.pode_gerenciar_alunos():
         flash('Você não tem permissão para fazer isso.', 'erro')
         return redirect(url_for('turmas'))
 
     nome = request.form['nome'].strip()
-    # .strip() remove espaços em branco no início e no fim
 
     if not nome:
         flash('O nome da turma não pode ser vazio.', 'erro')
         return redirect(url_for('turmas'))
 
+    # Superadmin precisa selecionar a igreja
+    # Outros usuários criam na sua própria igreja
+    if current_user.e_superadmin():
+        igreja_id = request.form.get('igreja_id')
+        if not igreja_id:
+            flash('Selecione uma igreja para a turma.', 'erro')
+            return redirect(url_for('turmas'))
+    else:
+        igreja_id = current_user.igreja_id
+
     try:
         q(
-            'INSERT INTO turmas (nome) VALUES (%s)',
-            (nome,),
+            'INSERT INTO turmas (nome, igreja_id) VALUES (%s, %s)',
+            (nome, igreja_id),
             commit=True
         )
         flash(f'Turma "{nome}" criada com sucesso!', 'sucesso')
     except:
-        # Se cair aqui, provavelmente é porque a turma já existe (UNIQUE)
-        q('', commit=False)  # não faz nada, só para não travar
         get_db().rollback()
         flash('Já existe uma turma com esse nome.', 'erro')
 
     return redirect(url_for('turmas'))
 
 
+
 # ============================================================
 # ROTA: /turmas/<id>/deletar  (POST)
-# Deleta uma turma e todos os alunos dela (CASCADE).
-# Somente diretor, coordenador e secretaria podem fazer isso.
 # ============================================================
 @app.route('/turmas/<int:turma_id>/deletar', methods=['POST'])
 @login_required
@@ -461,6 +491,13 @@ def deletar_turma(turma_id):
         flash('Você não tem permissão para fazer isso.', 'erro')
         return redirect(url_for('turmas'))
 
+    # Verifica se a turma pertence à igreja do usuário
+    turma = q('SELECT * FROM turmas WHERE id = %s', (turma_id,), one=True)
+
+    if not current_user.e_superadmin() and turma['igreja_id'] != current_user.igreja_id:
+        flash('Você não tem permissão para deletar essa turma.', 'erro')
+        return redirect(url_for('turmas'))
+
     q('DELETE FROM turmas WHERE id = %s', (turma_id,), commit=True)
     flash('Turma removida.', 'sucesso')
     return redirect(url_for('turmas'))
@@ -468,22 +505,30 @@ def deletar_turma(turma_id):
 
 # ============================================================
 # ROTA: /turmas/<id>/alunos  (GET)
-# Lista os alunos de uma turma.
-# Qualquer usuário logado pode ver.
 # ============================================================
 @app.route('/turmas/<int:turma_id>/alunos')
 @login_required
 def alunos(turma_id):
 
-    turma = q(
-        'SELECT * FROM turmas WHERE id = %s',
-        (turma_id,),
-        one=True
-    )
+    turma = q('SELECT * FROM turmas WHERE id = %s', (turma_id,), one=True)
 
     if turma is None:
         flash('Turma não encontrada.', 'erro')
         return redirect(url_for('turmas'))
+
+    # Verifica se o usuário tem acesso a essa turma
+    if not current_user.e_superadmin():
+        if current_user.e_professor():
+            acesso = q('''
+                SELECT id FROM professor_turmas
+                WHERE professor_id = %s AND turma_id = %s AND ativo = 1
+            ''', (current_user.id, turma_id), one=True)
+            if not acesso:
+                flash('Você não tem acesso a essa turma.', 'erro')
+                return redirect(url_for('turmas'))
+        elif turma['igreja_id'] != current_user.igreja_id:
+            flash('Você não tem acesso a essa turma.', 'erro')
+            return redirect(url_for('turmas'))
 
     lista_alunos = q(
         'SELECT * FROM alunos WHERE turma_id = %s ORDER BY nome',
@@ -492,11 +537,8 @@ def alunos(turma_id):
 
     return render_template('alunos.html', turma=turma, alunos=lista_alunos)
 
-
 # ============================================================
 # ROTA: /turmas/<id>/alunos/adicionar  (POST)
-# Adiciona um aluno em uma turma.
-# Somente diretor, coordenador e secretaria podem fazer isso.
 # ============================================================
 @app.route('/turmas/<int:turma_id>/alunos/adicionar', methods=['POST'])
 @login_required
@@ -505,6 +547,12 @@ def adicionar_aluno(turma_id):
     if not current_user.pode_gerenciar_alunos():
         flash('Você não tem permissão para fazer isso.', 'erro')
         return redirect(url_for('alunos', turma_id=turma_id))
+
+    turma = q('SELECT * FROM turmas WHERE id = %s', (turma_id,), one=True)
+
+    if not current_user.e_superadmin() and turma['igreja_id'] != current_user.igreja_id:
+        flash('Você não tem acesso a essa turma.', 'erro')
+        return redirect(url_for('turmas'))
 
     nome = request.form['nome'].strip()
 
@@ -523,24 +571,21 @@ def adicionar_aluno(turma_id):
 
 # ============================================================
 # ROTA: /alunos/<id>/deletar  (POST)
-# Remove um aluno.
-# Somente diretor, coordenador e secretaria podem fazer isso.
 # ============================================================
 @app.route('/alunos/<int:aluno_id>/deletar', methods=['POST'])
 @login_required
 def deletar_aluno(aluno_id):
 
-    # Busca o aluno para saber a qual turma pertence
-    # (para redirecionar de volta para a página certa)
-    aluno = q(
-        'SELECT * FROM alunos WHERE id = %s',
-        (aluno_id,),
-        one=True
-    )
+    aluno = q('SELECT * FROM alunos WHERE id = %s', (aluno_id,), one=True)
+    turma = q('SELECT * FROM turmas WHERE id = %s', (aluno['turma_id'],), one=True)
 
     if not current_user.pode_gerenciar_alunos():
         flash('Você não tem permissão para fazer isso.', 'erro')
         return redirect(url_for('alunos', turma_id=aluno['turma_id']))
+
+    if not current_user.e_superadmin() and turma['igreja_id'] != current_user.igreja_id:
+        flash('Você não tem acesso a essa turma.', 'erro')
+        return redirect(url_for('turmas'))
 
     q('DELETE FROM alunos WHERE id = %s', (aluno_id,), commit=True)
     flash('Aluno removido.', 'sucesso')
