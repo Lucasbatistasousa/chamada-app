@@ -346,6 +346,20 @@ def migrate_db():
         ALTER TABLE alunos
         ADD COLUMN IF NOT EXISTS celula TEXT;
     ''')
+    
+    # Impede turmas com mesmo nome na mesma igreja
+    cur.execute('''
+        ALTER TABLE turmas
+        ADD CONSTRAINT IF NOT EXISTS turmas_nome_igreja_unique
+        UNIQUE (nome, igreja_id);
+    ''')
+
+    # Impede professor designado duas vezes na mesma turma
+    cur.execute('''
+        ALTER TABLE professor_turmas
+        ADD CONSTRAINT IF NOT EXISTS professor_turma_unique
+        UNIQUE (professor_id, turma_id);
+    ''')
 
     conn.commit()
     cur.close()

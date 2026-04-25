@@ -18,6 +18,21 @@
         },
       };
     </script>
+    <script>
+    // Desabilita todos os botões de submit após o primeiro clique
+    // Evita duplo clique e duplicação de dados
+    document.addEventListener('DOMContentLoaded', function () {
+      document.querySelectorAll('form').forEach(function (form) {
+        form.addEventListener('submit', function () {
+          const botoes = form.querySelectorAll('button[type="submit"]');
+          botoes.forEach(function (botao) {
+            botao.disabled = true;
+            botao.textContent = 'Aguarde...';
+          });
+        });
+      });
+    });
+  </script>
   </head>
   <body class="bg-gray-50 text-gray-800 min-h-screen">
     <!-- ── NAVBAR ── -->
