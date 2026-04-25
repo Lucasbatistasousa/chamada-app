@@ -349,16 +349,32 @@ def migrate_db():
     
     # Impede turmas com mesmo nome na mesma igreja
     cur.execute('''
-        ALTER TABLE turmas
-        ADD CONSTRAINT IF NOT EXISTS turmas_nome_igreja_unique
-        UNIQUE (nome, igreja_id);
+        DO $$
+        BEGIN
+            IF NOT EXISTS (
+                SELECT 1 FROM pg_constraint
+                WHERE conname = 'turmas_nome_igreja_unique'
+            ) THEN
+                ALTER TABLE turmas
+                ADD CONSTRAINT turmas_nome_igreja_unique
+                UNIQUE (nome, igreja_id);
+            END IF;
+        END$$;
     ''')
 
     # Impede professor designado duas vezes na mesma turma
     cur.execute('''
-        ALTER TABLE professor_turmas
-        ADD CONSTRAINT IF NOT EXISTS professor_turma_unique
-        UNIQUE (professor_id, turma_id);
+        DO $$
+        BEGIN
+            IF NOT EXISTS (
+                SELECT 1 FROM pg_constraint
+                WHERE conname = 'professor_turma_unique'
+            ) THEN
+                ALTER TABLE professor_turmas
+                ADD CONSTRAINT professor_turma_unique
+                UNIQUE (professor_id, turma_id);
+            END IF;
+        END$$;
     ''')
 
     conn.commit()
