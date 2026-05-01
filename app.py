@@ -371,10 +371,10 @@ def usuarios():
         # Superadmin vê todos os usuários com suas igrejas
         lista_usuarios = q('''
             SELECT u.*,
-                   STRING_AGG(i.nome || ' (' || ui.perfil || ')', ', ')
-                   AS igrejas_info
+                   STRING_AGG(i.nome || ' (' || ui.perfil || ')', ', ') AS igrejas_info,
+                   MAX(CASE WHEN u.perfil != 'superadmin' THEN ui.perfil END) AS perfil_igreja
             FROM usuarios u
-            LEFT JOIN usuario_igrejas ui ON ui.usuario_id = u.id
+            LEFT JOIN usuario_igrejas ui ON ui.usuario_id = u.id AND ui.ativo = 1
             LEFT JOIN igrejas i ON i.id = ui.igreja_id
             GROUP BY u.id
             ORDER BY u.nome

@@ -73,14 +73,14 @@
             {% set perfil_exibir = usuario.perfil if current_user.e_superadmin() and usuario.perfil == 'superadmin' else usuario.get('perfil_igreja', usuario.perfil) %}
             <span class="text-xs font-semibold px-3 py-1 rounded-full whitespace-nowrap
               {% if usuario.perfil == 'superadmin' %}bg-purple-100 text-purple-700
-              {% elif usuario.get('perfil_igreja', '') == 'diretor' or usuario.perfil == 'diretor' %}bg-yellow-100 text-yellow-700
-              {% elif usuario.get('perfil_igreja', '') == 'coordenador' %}bg-green-100 text-green-700
-              {% elif usuario.get('perfil_igreja', '') == 'secretaria' %}bg-blue-100 text-blue-600
-              {% elif usuario.get('perfil_igreja', '') == 'professor' %}bg-gray-100 text-gray-500
+              {% elif usuario.perfil_igreja == 'diretor' %}bg-yellow-100 text-yellow-700
+              {% elif usuario.perfil_igreja == 'coordenador' %}bg-green-100 text-green-700
+              {% elif usuario.perfil_igreja == 'secretaria' %}bg-blue-100 text-blue-600
+              {% elif usuario.perfil_igreja == 'professor' %}bg-gray-100 text-gray-500
               {% else %}bg-gray-100 text-gray-500{% endif %}">
               {% if usuario.perfil == 'superadmin' %}
                 superadmin
-              {% elif usuario.perfil_igreja is defined %}
+              {% elif usuario.perfil_igreja %}
                 {{ usuario.perfil_igreja }}
               {% else %}
                 {{ usuario.perfil }}
