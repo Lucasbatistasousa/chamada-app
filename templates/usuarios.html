@@ -70,12 +70,21 @@
           <div class="flex items-center gap-2 shrink-0 ml-2">
 
             <!-- Badge de perfil -->
+            {% set perfil_exibir = usuario.perfil if current_user.e_superadmin() and usuario.perfil == 'superadmin' else usuario.get('perfil_igreja', usuario.perfil) %}
             <span class="text-xs font-semibold px-3 py-1 rounded-full whitespace-nowrap
-              {% if usuario.perfil == 'diretor' %}bg-yellow-100 text-yellow-700
-              {% elif usuario.perfil == 'coordenador' %}bg-green-100 text-green-700
-              {% elif usuario.perfil == 'secretaria' %}bg-blue-100 text-blue-600
+              {% if usuario.perfil == 'superadmin' %}bg-purple-100 text-purple-700
+              {% elif usuario.get('perfil_igreja', '') == 'diretor' or usuario.perfil == 'diretor' %}bg-yellow-100 text-yellow-700
+              {% elif usuario.get('perfil_igreja', '') == 'coordenador' %}bg-green-100 text-green-700
+              {% elif usuario.get('perfil_igreja', '') == 'secretaria' %}bg-blue-100 text-blue-600
+              {% elif usuario.get('perfil_igreja', '') == 'professor' %}bg-gray-100 text-gray-500
               {% else %}bg-gray-100 text-gray-500{% endif %}">
-              {{ usuario.perfil }}
+              {% if usuario.perfil == 'superadmin' %}
+                superadmin
+              {% elif usuario.perfil_igreja is defined %}
+                {{ usuario.perfil_igreja }}
+              {% else %}
+                {{ usuario.perfil }}
+              {% endif %}
             </span>
 
             <!-- Botão deletar -->
