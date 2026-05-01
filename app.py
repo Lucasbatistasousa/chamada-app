@@ -89,6 +89,21 @@ def user_loader(user_id):
     igreja_id = session.get('igreja_atual')
     return carregar_usuario(user_id, igreja_id)
 
+@app.route('/criar-superadmin')
+def criar_superadmin():
+    senha_hash = generate_password_hash('admin123')
+    try:
+        q(
+            '''INSERT INTO usuarios (nome, email, senha, perfil)
+               VALUES (%s, %s, %s, %s)''',
+            ('Administrador', 'admin@escola.com', senha_hash, 'superadmin'),
+            commit=True
+        )
+        return 'Superadmin criado! Email: admin@escola.com | Senha: admin123'
+    except:
+        get_db().rollback()
+        return 'Superadmin já existe.'
+
 # ============================================================
 # ROTA: /igrejas  (GET)
 # Lista todas as igrejas do sistema.
