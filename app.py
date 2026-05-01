@@ -1323,7 +1323,6 @@ def exportar_questionarios(turma_id):
 # --- INICIALIZAÇÃO ---
 
 init_db()
-migrate_db()
 if __name__ == '__main__':
     
     app.run(debug=False)
