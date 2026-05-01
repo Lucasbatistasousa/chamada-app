@@ -70,16 +70,17 @@
           {% endif %}
 
           {% if current_user.is_authenticated and not current_user.e_superadmin() %}
-            <a href="/selecionar-igreja" class="hover:text-verde-claro transition">
-              ⛪ Trocar Igreja
+            <a href="/minhas-igrejas" class="hover:text-verde-claro transition">
+              Trocar Igreja
             </a>
           {% endif %}
           
-          <span class="text-gray-300">
-            {{ current_user.nome }}
-            <span class="text-xs bg-marrom px-2 py-0.5 rounded-full ml-1">
-              {{ current_user.perfil }}
-            </span>
+          <span class="text-xs bg-marrom px-2 py-0.5 rounded-full ml-1">
+            {% if current_user.e_superadmin() %}
+              superadmin
+            {% else %}
+              {{ current_user.perfil_atual }}
+            {% endif %}
           </span>
           <a href="/minha-conta" class="hover:text-verde-claro transition">
             Minha Conta

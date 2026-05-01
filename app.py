@@ -301,6 +301,31 @@ def selecionar_igreja():
 
     return render_template('selecionar_igreja.html', igrejas=igrejas)
 
+#----------------------------------------------------------------------------------------------
+# Rota de minha Igrejas
+#----------------------------------------------------------------------------------------------
+
+@app.route('/minhas-igrejas')
+@login_required
+def minhas_igrejas():
+    if current_user.e_superadmin():
+        return redirect(url_for('index'))
+
+    igrejas = q('''
+        SELECT ui.*, i.nome AS igreja_nome
+        FROM usuario_igrejas ui
+        JOIN igrejas i ON i.id = ui.igreja_id
+        WHERE ui.usuario_id = %s AND ui.ativo = 1
+        ORDER BY i.nome
+    ''', (current_user.id,))
+
+    # Se só tem uma igreja não precisa trocar
+    if len(igrejas) <= 1:
+        flash('Você só tem acesso a uma igreja.', 'erro')
+        return redirect(url_for('index'))
+
+    return render_template('selecionar_igreja.html', igrejas=igrejas)
+
 
 # ============================================================
 # ROTA: /logout
