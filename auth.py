@@ -25,14 +25,13 @@ from database import q
 # ============================================================
 class Usuario(UserMixin):
 
-    def __init__(self, id, nome, email, perfil, igreja_id):
+    def __init__(self, id, nome, email, perfil, igreja_atual=None, perfil_atual=None):
         # __init__ é o construtor — roda quando criamos um Usuario
         # Guardamos as informações do usuário como atributos do objeto
         self.id     = id
         self.nome   = nome
         self.email  = email
         self.perfil = perfil
-        self.igreja_id = igreja_id
         # igreja_id None = superadmin
         # perfil pode ser: 'diretor', 'coordenador', 'secretaria', 'professor'
 
@@ -42,7 +41,9 @@ class Usuario(UserMixin):
         adicionar ou remover alunos e turmas.
         Somente diretor, coordenador e secretaria podem fazer isso.
         """
-        return self.perfil in ['superadmin', 'diretor', 'coordenador', 'secretaria']
+        if self.e_superadmin():
+            return True
+        return self.perfil_atual in ['diretor', 'coordenador', 'secretaria']
     
     def pode_gerenciar_usuarios(self):
         """
@@ -50,24 +51,33 @@ class Usuario(UserMixin):
         - Superadmin gerencia usuários de qualquer igreja
         - Diretor e coordenador gerenciam usuários da sua própria igreja
         """
-        return self.perfil in ['superadmin', 'diretor', 'coordenador']
-    
+        if self.e_superadmin():
+            return True
+        return self.perfil_atual in ['diretor', 'coordenador']
+        
     def pode_gerenciar_igrejas(self):
         """
         Retorna True se pode criar e gerenciar igrejas.
         Somente o superadmin pode fazer isso.
         """
-        return self.perfil == 'superadmin'
+        return self.e_superadmin()
 
     def e_professor(self):
         """
         Retorna True se o usuário é professor.
         Professores podem fazer chamada e lançar questionários.
         """
-        return self.perfil == 'professor'
+        return self.perfil_atual == 'professor'
     
     def e_superadmin(self):
         return self.perfil == 'superadmin'
+    
+    def get_igreja_id(self):
+        """
+        Retorna o ID da igreja atual do usuário.
+        Superadmin não tem igreja fixa.
+        """
+        return self.igreja_atual
 
 
 # ============================================================
@@ -76,12 +86,11 @@ class Usuario(UserMixin):
 # requisição para saber quem está logado.
 # Ele pega o ID guardado na sessão e busca o usuário no banco.
 # ============================================================
-def carregar_usuario(user_id):
+def carregar_usuario(user_id, igreja_id=None):
     """
     Busca o usuário no banco pelo ID.
-    Retorna um objeto Usuario ou None se não encontrar.
+    Se igreja_id for passado, carrega também o perfil naquela igreja.
     """
-
     usuario = q(
         'SELECT * FROM usuarios WHERE id = %s',
         (user_id,),
@@ -92,12 +101,31 @@ def carregar_usuario(user_id):
         # ID não encontrado no banco — retorna None
         # O Flask-Login vai tratar isso como "não logado"
         return None
+    
+    perfil_atual = None
+    igreja_atual = None
 
+    if igreja_id:
+        # Busca o perfil do usuário na igreja selecionada
+        vinculo = q(
+            '''SELECT perfil FROM usuario_igrejas
+               WHERE usuario_id = %s AND igreja_id = %s AND ativo = 1''',
+            (user_id, igreja_id),
+            one=True
+        )
+        if vinculo:
+            perfil_atual = vinculo['perfil']
+            igreja_atual = igreja_id
+
+    elif usuario['perfil'] == 'superadmin':
+        perfil_atual = 'superadmin'
+        
     # Cria e retorna um objeto Usuario com os dados do banco
     return Usuario(
         id        = usuario['id'],
         nome      = usuario['nome'],
         email     = usuario['email'],
-        perfil    = usuario['perfil'],
-        igreja_id = usuario['igreja_id']
+        perfil            = usuario['perfil'],
+        igreja_atual = igreja_atual,
+        perfil_atual = perfil_atual
     )
