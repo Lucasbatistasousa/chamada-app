@@ -32,6 +32,8 @@ class Usuario(UserMixin):
         self.nome   = nome
         self.email  = email
         self.perfil = perfil
+        self.igreja_atual = igreja_atual
+        self.perfil_atual = perfil_atual
         # igreja_id None = superadmin
         # perfil pode ser: 'diretor', 'coordenador', 'secretaria', 'professor'
 
