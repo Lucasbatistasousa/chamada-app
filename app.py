@@ -11,7 +11,7 @@ import os
 # Carrega o .env ANTES de qualquer outra coisa,
 # para que o DATABASE_URL já esteja disponível quando precisarmos
 
-from database import init_db, q, teardown_db, get_db, migrate_db
+from database import init_db, q, teardown_db, get_db
 from datetime import date
 
 import csv
