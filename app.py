@@ -27,7 +27,7 @@ from flask import send_file
 # send_file envia um arquivo para o navegador fazer o download
 # Adicione no import do flask no topo do app.py
 
-from flask import Flask, render_template, request, redirect, url_for, flash
+from flask import Flask, render_template, request, redirect, url_for, flash, session
 # Flask          → o framework em si
 # render_template → renderiza arquivos HTML da pasta templates/
 # request        → acessa os dados enviados pelo formulário (POST)
@@ -48,7 +48,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 # check_password_hash    → compara a senha digitada com o hash salvo no banco
 #   Nunca descriptografa — apenas verifica se batem
 
-from database import init_db, q, teardown_db
+from database import init_db, q, teardown_db, get_db
 from auth import Usuario, carregar_usuario
 
 
@@ -85,7 +85,9 @@ login_manager.login_message = 'Faça login para acessar essa página.'
 def user_loader(user_id):
     # Diz ao Flask-Login como carregar o usuário a partir do ID
     # Essa função roda automaticamente em cada requisição
-    return carregar_usuario(user_id)
+    # Busca o ID da igreja salvo na sessão
+    igreja_id = session.get('igreja_atual')
+    return carregar_usuario(user_id, igreja_id)
 
 # ============================================================
 # ROTA: /igrejas  (GET)
@@ -206,15 +208,19 @@ def login():
             one=True
         )
 
-        if usuario is None:
-            # Email não encontrado
+        # Email ou Senha Incorreta, retorna um erro
+        if usuario is None or not check_password_hash(usuario['senha'], senha):
             flash('Email ou senha incorretos.', 'erro')
             return redirect(url_for('login'))
-
-        if not check_password_hash(usuario['senha'], senha):
-            # O hash da senha digitada não bate com o salvo no banco
-            flash('Email ou senha incorretos.', 'erro')
-            return redirect(url_for('login'))
+        
+        # Busca as igrejas do usuário
+        igrejas = q('''
+            SELECT ui.*, i.nome AS igreja_nome
+            FROM usuario_igrejas ui
+            JOIN igrejas i ON i.id = ui.igreja_id
+            WHERE ui.usuario_id = %s AND ui.ativo = 1
+            ORDER BY i.nome
+        ''', (usuario['id'],))
 
         # Tudo certo — cria o objeto Usuario e registra na sessão
         usuario_obj = Usuario(
@@ -222,16 +228,78 @@ def login():
             nome   = usuario['nome'],
             email  = usuario['email'],
             perfil = usuario['perfil'],
-            igreja_id = usuario['igreja_id']
+            igreja_atual = None,
+            perfil_atual = None
         )
         login_user(usuario_obj)
         # A partir daqui, current_user terá os dados desse usuário
 
-        return redirect(url_for('index'))
-        # Redireciona para a página principal após o login
+        # Superadmin entra direto
+        if usuario['perfil'] == 'superadmin':
+            session['igreja_atual'] = None
+            return redirect(url_for('index'))
+        
+        # Usuário sem nenhuma igreja
+        if not igrejas:
+            flash('Você não está vinculado a nenhuma igreja.', 'erro')
+            logout_user()
+            return redirect(url_for('login'))
+        
+        # Usuário com apenas uma igreja — entra direto
+        if len(igrejas) == 1:
+            session['igreja_atual'] = igrejas[0]['igreja_id']
+            return redirect(url_for('selecionar_igreja'))
+        
+        # Usuário com múltiplas igrejas — vai para tela de seleção
+        return redirect(url_for('selecionar_igreja'))
 
     # Se for GET, apenas exibe o formulário
     return render_template('login.html')
+
+# ============================================================
+# ROTA: /selecionar-igreja  (GET e POST)
+# Permite ao usuário escolher qual igreja acessar.
+# ============================================================
+@app.route('/selecionar-igreja', methods=['GET', 'POST'])
+@login_required
+def selecionar_igreja():
+
+    # Superadmin não precisa selecionar igreja
+    if current_user.e_superadmin():
+        return redirect(url_for('index'))
+
+    if request.method == 'POST':
+        igreja_id = int(request.form['igreja_id'])
+
+        # Verifica se o usuário realmente pertence a essa igreja
+        vinculo = q('''
+            SELECT * FROM usuario_igrejas
+            WHERE usuario_id = %s AND igreja_id = %s AND ativo = 1
+        ''', (current_user.id, igreja_id), one=True)
+
+        if not vinculo:
+            flash('Você não tem acesso a essa igreja.', 'erro')
+            return redirect(url_for('selecionar_igreja'))
+
+        # Salva a igreja selecionada na sessão
+        session['igreja_atual'] = igreja_id
+        return redirect(url_for('index'))
+
+    # Busca as igrejas do usuário
+    igrejas = q('''
+        SELECT ui.*, i.nome AS igreja_nome
+        FROM usuario_igrejas ui
+        JOIN igrejas i ON i.id = ui.igreja_id
+        WHERE ui.usuario_id = %s AND ui.ativo = 1
+        ORDER BY i.nome
+    ''', (current_user.id,))
+
+    # Se só tem uma igreja seleciona automaticamente
+    if len(igrejas) == 1:
+        session['igreja_atual'] = igrejas[0]['igreja_id']
+        return redirect(url_for('index'))
+
+    return render_template('selecionar_igreja.html', igrejas=igrejas)
 
 
 # ============================================================
@@ -242,6 +310,7 @@ def login():
 @login_required
 # @login_required bloqueia a rota se não estiver logado
 def logout():
+    session.pop('igreja_atual', None)
     logout_user()
     return redirect(url_for('login'))
 
@@ -253,6 +322,9 @@ def logout():
 @app.route('/')
 @login_required
 def index():
+    # Usuário logado mas sem igreja selecionada
+    if not current_user.e_superadmin() and not current_user.igreja_atual:
+        return redirect(url_for('selecionar_igreja'))
     return render_template('index.html')
  
 # ============================================================
@@ -271,14 +343,36 @@ def usuarios():
     # Superadmin vê todos os usuários
     # Diretor e coordenador veem só os usuários da sua igreja
     if current_user.e_superadmin():
-        lista_usuarios = q('SELECT * FROM usuarios ORDER BY nome')
+        # Superadmin vê todos os usuários com suas igrejas
+        lista_usuarios = q('''
+            SELECT u.*,
+                   STRING_AGG(i.nome || ' (' || ui.perfil || ')', ', ')
+                   AS igrejas_info
+            FROM usuarios u
+            LEFT JOIN usuario_igrejas ui ON ui.usuario_id = u.id
+            LEFT JOIN igrejas i ON i.id = ui.igreja_id
+            GROUP BY u.id
+            ORDER BY u.nome
+        ''')
     else:
-        lista_usuarios = q(
-            'SELECT * FROM usuarios WHERE igreja_id = %s ORDER BY nome',
-            (current_user.igreja_id,)
-        )
+        # Diretor/coordenador vê usuários da sua igreja
+        lista_usuarios = q('''
+            SELECT u.*, ui.perfil AS perfil_igreja
+            FROM usuarios u
+            JOIN usuario_igrejas ui ON ui.usuario_id = u.id
+            WHERE ui.igreja_id = %s AND ui.ativo = 1
+            ORDER BY u.nome
+        ''', (current_user.igreja_atual,))
 
-    return render_template('usuarios.html', usuarios=lista_usuarios)
+    # Lista de igrejas para o superadmin vincular usuários
+    todas_igrejas = q('SELECT * FROM igrejas ORDER BY nome') \
+                    if current_user.e_superadmin() else []
+
+    return render_template(
+        'usuarios.html',
+        usuarios      = lista_usuarios,
+        todas_igrejas = todas_igrejas
+    )
 
 
 # ============================================================
@@ -298,6 +392,7 @@ def criar_usuario():
     email      = request.form['email'].strip()
     senha      = request.form['senha'].strip()
     perfil     = request.form['perfil']
+    igreja_id = request.form.get('igreja_id')
 
     if not nome or not email or not senha or not perfil:
         flash('Todos os campos são obrigatórios.', 'erro')
@@ -308,23 +403,66 @@ def criar_usuario():
         flash('Perfil inválido.', 'erro')
         return redirect(url_for('usuarios'))
 
-    # Superadmin pode criar usuários sem igreja
     # Diretor e coordenador criam usuários vinculados à sua igreja
-    igreja_id = None if current_user.e_superadmin() else current_user.igreja_id
-    
+    # Superadmin define a igreja
+    if current_user.e_superadmin():
+        if not igreja_id:
+            flash('Selecione uma igreja.', 'erro')
+            return redirect(url_for('usuarios'))
+    else:
+        igreja_id = current_user.igreja_atual
+
     senha_hash = generate_password_hash(senha)
 
     try:
-        q(
-            '''INSERT INTO usuarios (nome, email, senha, perfil, igreja_id)
-               VALUES (%s, %s, %s, %s, %s)''',
-            (nome, email, senha_hash, perfil, igreja_id),
-            commit=True
+        # Verifica se o usuário já existe
+        usuario_existente = q(
+            'SELECT id FROM usuarios WHERE email = %s',
+            (email,),
+            one=True
         )
-        flash(f'Usuário "{nome}" criado com sucesso!', 'sucesso')
-    except:
+
+        if usuario_existente:
+            usuario_id = usuario_existente['id']
+        else:
+            # Cria o usuário novo
+            q(
+                '''INSERT INTO usuarios (nome, email, senha, perfil)
+                   VALUES (%s, %s, %s, %s)''',
+                (nome, email, senha_hash, 'usuario'),
+                commit=True
+            )
+            usuario_id = q(
+                'SELECT id FROM usuarios WHERE email = %s',
+                (email,),
+                one=True
+            )['id']
+
+        # Verifica se já tem vínculo com essa igreja
+        vinculo = q('''
+            SELECT id FROM usuario_igrejas
+            WHERE usuario_id = %s AND igreja_id = %s
+        ''', (usuario_id, igreja_id), one=True)
+
+        if vinculo:
+            # Atualiza o perfil se já existir
+            q('''
+                UPDATE usuario_igrejas
+                SET perfil = %s, ativo = 1
+                WHERE usuario_id = %s AND igreja_id = %s
+            ''', (perfil, usuario_id, igreja_id), commit=True)
+            flash(f'Vínculo de "{nome}" atualizado!', 'sucesso')
+        else:
+            # Cria o vínculo
+            q('''
+                INSERT INTO usuario_igrejas (usuario_id, igreja_id, perfil)
+                VALUES (%s, %s, %s)
+            ''', (usuario_id, int(igreja_id), perfil), commit=True)
+            flash(f'Usuário "{nome}" criado com sucesso!', 'sucesso')
+
+    except Exception as e:
         get_db().rollback()
-        flash('Já existe um usuário com esse email.', 'erro')
+        flash(f'Erro ao criar usuário: {str(e)}', 'erro')
 
     return redirect(url_for('usuarios'))
 
@@ -338,7 +476,7 @@ def criar_usuario():
 @login_required
 def deletar_usuario(usuario_id):
 
-    if current_user.perfil not in ['superadmin','diretor', 'coordenador']:
+    if not current_user.pode_gerenciar_usuarios():
         flash('Você não tem permissão para fazer isso.', 'erro')
         return redirect(url_for('usuarios'))
 
@@ -346,8 +484,17 @@ def deletar_usuario(usuario_id):
     if usuario_id == current_user.id:
         flash('Você não pode deletar sua própria conta.', 'erro')
         return redirect(url_for('usuarios'))
+    
+    if current_user.e_superadmin():
+        # Superadmin deleta o usuário completamente
+        q('DELETE FROM usuarios WHERE id = %s', (usuario_id,), commit=True)
+    else:
+        # Diretor/coordenador apenas remove o vínculo com a igreja
+        q('''
+            DELETE FROM usuario_igrejas
+            WHERE usuario_id = %s AND igreja_id = %s
+        ''', (usuario_id, current_user.igreja_atual), commit=True)
 
-    q('DELETE FROM usuarios WHERE id = %s', (usuario_id,), commit=True)
     flash('Usuário removido.', 'sucesso')
     return redirect(url_for('usuarios'))
     

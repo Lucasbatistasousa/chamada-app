@@ -49,14 +49,23 @@
                 {{ usuario.nome }}
                 {% if usuario.id == current_user.id %}
                   <span class="text-xs bg-gray-100 text-gray-400
-                               px-2 py-0.5 rounded-full shrink-0">
+                              px-2 py-0.5 rounded-full shrink-0">
                     você
                   </span>
                 {% endif %}
               </div>
               <div class="text-sm text-gray-400 truncate">{{ usuario.email }}</div>
+              {% if current_user.e_superadmin() and usuario.igrejas_info %}
+                <div class="text-xs text-gray-400 mt-0.5">
+                  {{ usuario.igrejas_info }}
+                </div>
+              {% elif not current_user.e_superadmin() %}
+                <div class="text-xs text-gray-400 mt-0.5">
+                  {{ usuario.perfil_igreja }}
+                </div>
+              {% endif %}
             </div>
-          </div>
+            </div>
 
           <div class="flex items-center gap-2 shrink-0 ml-2">
 
@@ -102,7 +111,13 @@
 
     <div class="bg-white rounded-2xl shadow-xl p-8 w-full max-w-md mx-4">
 
-      <h2 class="text-xl font-bold text-marrom mb-6">Novo Usuário</h2>
+      <h2 class="text-xl font-bold text-marrom mb-6">
+        {% if current_user.e_superadmin() %}
+          Novo Usuário
+        {% else %}
+          Adicionar à Igreja
+        {% endif %}
+      </h2>
 
       <form method="POST" action="/usuarios/criar" class="flex flex-col gap-4">
 
@@ -110,55 +125,42 @@
           <label class="block text-sm font-semibold text-gray-600 mb-1">
             Nome completo
           </label>
-          <input
-            type="text"
-            name="nome"
-            required
-            placeholder="Ex: João da Silva"
-            class="w-full border border-gray-300 rounded-lg px-4 py-2 text-sm
-                   focus:outline-none focus:ring-2 focus:ring-verde-claro"
-          >
+          <input type="text" name="nome" required
+                 placeholder="Ex: João da Silva"
+                 class="w-full border border-gray-300 rounded-lg px-4 py-2 text-sm
+                        focus:outline-none focus:ring-2 focus:ring-verde-claro">
         </div>
 
         <div>
           <label class="block text-sm font-semibold text-gray-600 mb-1">
             Email
           </label>
-          <input
-            type="email"
-            name="email"
-            required
-            placeholder="joao@escola.com"
-            class="w-full border border-gray-300 rounded-lg px-4 py-2 text-sm
-                   focus:outline-none focus:ring-2 focus:ring-verde-claro"
-          >
+          <input type="email" name="email" required
+                 placeholder="joaoprofessor@escoladelideres.com"
+                 class="w-full border border-gray-300 rounded-lg px-4 py-2 text-sm
+                        focus:outline-none focus:ring-2 focus:ring-verde-claro">
+          <p class="text-xs text-gray-400 mt-1">
+            Se o email já existir no sistema, o usuário será vinculado a esta igreja.
+          </p>
         </div>
 
         <div>
           <label class="block text-sm font-semibold text-gray-600 mb-1">
             Senha
           </label>
-          <input
-            type="password"
-            name="senha"
-            required
-            placeholder="••••••••"
-            class="w-full border border-gray-300 rounded-lg px-4 py-2 text-sm
-                   focus:outline-none focus:ring-2 focus:ring-verde-claro"
-          >
+          <input type="password" name="senha" required
+                 placeholder="Mínimo 6 caracteres"
+                 class="w-full border border-gray-300 rounded-lg px-4 py-2 text-sm
+                        focus:outline-none focus:ring-2 focus:ring-verde-claro">
         </div>
 
         <div>
           <label class="block text-sm font-semibold text-gray-600 mb-1">
             Perfil
           </label>
-          <select
-            name="perfil"
-            required
-            class="w-full border border-gray-300 rounded-lg px-4 py-2 text-sm
-                   focus:outline-none focus:ring-2 focus:ring-verde-claro
-                   bg-white"
-          >
+          <select name="perfil" required
+                  class="w-full border border-gray-300 rounded-lg px-4 py-2 text-sm
+                         focus:outline-none focus:ring-2 focus:ring-verde-claro bg-white">
             <option value="">Selecione um perfil</option>
             <option value="diretor">Diretor</option>
             <option value="coordenador">Coordenador</option>
@@ -167,24 +169,37 @@
           </select>
         </div>
 
+        {% if current_user.e_superadmin() %}
+          <div>
+            <label class="block text-sm font-semibold text-gray-600 mb-1">
+              Igreja
+            </label>
+            <select name="igreja_id" required
+                    class="w-full border border-gray-300 rounded-lg px-4 py-2 text-sm
+                           focus:outline-none focus:ring-2 focus:ring-verde-claro bg-white">
+              <option value="">Selecione uma igreja</option>
+              {% for igreja in todas_igrejas %}
+                <option value="{{ igreja.id }}">{{ igreja.nome }}</option>
+              {% endfor %}
+            </select>
+          </div>
+        {% endif %}
+
         <div class="flex gap-3 justify-end mt-2">
-          <button
-            type="button"
-            onclick="document.getElementById('modal-usuario').classList.add('hidden')"
-            class="px-4 py-2 rounded-lg border border-gray-300 text-sm
-                   text-gray-600 hover:bg-gray-50 transition">
+          <button type="button"
+                  onclick="document.getElementById('modal-usuario').classList.add('hidden')"
+                  class="px-4 py-2 rounded-lg border border-gray-300 text-sm
+                         text-gray-600 hover:bg-gray-50 transition">
             Cancelar
           </button>
-          <button
-            type="submit"
-            class="bg-verde-escuro text-white px-4 py-2 rounded-lg
-                   text-sm font-semibold hover:bg-opacity-90 transition">
+          <button type="submit"
+                  class="bg-verde-escuro text-white px-4 py-2 rounded-lg
+                         text-sm font-semibold hover:bg-opacity-90 transition">
             Criar
           </button>
         </div>
 
       </form>
-
     </div>
   </div>
 

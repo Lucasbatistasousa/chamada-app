@@ -68,6 +68,12 @@
           {% if current_user.e_superadmin() %}
             <a href="/igrejas" class="hover:text-verde-claro transition">Igrejas</a>
           {% endif %}
+
+          {% if current_user.is_authenticated and not current_user.e_superadmin() %}
+            <a href="/selecionar-igreja" class="hover:text-verde-claro transition">
+              ⛪ Trocar Igreja
+            </a>
+          {% endif %}
           
           <span class="text-gray-300">
             {{ current_user.nome }}
