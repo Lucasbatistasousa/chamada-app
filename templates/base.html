@@ -61,7 +61,7 @@
 
           <a href="/turmas" class="hover:text-verde-claro transition">Turmas</a>
 
-          {% if current_user.perfil in ['superadmin''diretor', 'coordenador'] %}
+          {% if current_user.pode_gerenciar_usuarios() %}
           <a href="/usuarios" class="hover:text-verde-claro transition">Usuários</a>
           {% endif %}
 
@@ -105,17 +105,37 @@
         <a href="/turmas" class="hover:text-verde-claro transition py-1"
           >Turmas</a
         >
-        {% if current_user.perfil in ['diretor', 'coordenador'] %}
+        {% if current_user.pode_gerenciar_usuarios() %}
         <a href="/usuarios" class="hover:text-verde-claro transition py-1">
           Usuários
         </a>
         {% endif %}
+
+        {% if current_user.e_superadmin() %}
+          <a href="/igrejas" class="hover:text-verde-claro transition py-1">Igrejas</a>
+        {% endif %}
+
+        {% if current_user.pode_gerenciar_usuarios() %}
+          <a href="/usuarios" class="hover:text-verde-claro transition py-1">Usuários</a>
+        {% endif %}
+
+        {% if not current_user.e_superadmin() %}
+          <a href="/minhas-igrejas" class="hover:text-verde-claro transition py-1">
+            Trocar Igreja
+          </a>
+        {% endif %}
+
         <div class="text-gray-300 py-1">
           {{ current_user.nome }}
           <span class="text-xs bg-marrom px-2 py-0.5 rounded-full ml-1">
-            {{ current_user.perfil }}
+            {% if current_user.e_superadmin() %}
+              superadmin
+            {% else %}
+              {{ current_user.perfil_atual }}
+            {% endif %}
           </span>
         </div>
+        
         <a href="/minha-conta" class="hover:text-verde-claro transition py-1">
           Minha Conta
         </a>
