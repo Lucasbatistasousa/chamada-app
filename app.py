@@ -526,6 +526,68 @@ def deletar_usuario(usuario_id):
 
     flash('Usuário removido.', 'sucesso')
     return redirect(url_for('usuarios'))
+
+# ============================================================
+# ROTA: /usuarios/vincular  (POST)
+# Vincula um usuário já existente a uma igreja com um perfil.
+# ============================================================
+@app.route('/usuarios/vincular', methods=['POST'])
+@login_required
+def vincular_usuario():
+
+    if not current_user.pode_gerenciar_usuarios():
+        flash('Você não tem permissão para fazer isso.', 'erro')
+        return redirect(url_for('usuarios'))
+
+    email     = request.form['email'].strip()
+    perfil    = request.form['perfil_vincular']
+    igreja_id = request.form.get('igreja_id_vincular')
+
+    if not email or not perfil:
+        flash('Email e perfil são obrigatórios.', 'erro')
+        return redirect(url_for('usuarios'))
+
+    if current_user.e_superadmin():
+        if not igreja_id:
+            flash('Selecione uma igreja.', 'erro')
+            return redirect(url_for('usuarios'))
+    else:
+        igreja_id = current_user.igreja_atual
+
+    # Busca o usuário pelo email
+    usuario = q(
+        'SELECT * FROM usuarios WHERE email = %s',
+        (email,),
+        one=True
+    )
+
+    if not usuario:
+        flash('Nenhum usuário encontrado com esse email.', 'erro')
+        return redirect(url_for('usuarios'))
+
+    # Verifica se já tem vínculo com essa igreja
+    vinculo = q('''
+        SELECT id FROM usuario_igrejas
+        WHERE usuario_id = %s AND igreja_id = %s
+    ''', (usuario['id'], igreja_id), one=True)
+
+    if vinculo:
+        # Atualiza o perfil
+        q('''
+            UPDATE usuario_igrejas
+            SET perfil = %s, ativo = 1
+            WHERE usuario_id = %s AND igreja_id = %s
+        ''', (perfil, usuario['id'], igreja_id), commit=True)
+        flash(f'Perfil de "{usuario["nome"]}" atualizado!', 'sucesso')
+    else:
+        # Cria o vínculo
+        q('''
+            INSERT INTO usuario_igrejas (usuario_id, igreja_id, perfil)
+            VALUES (%s, %s, %s)
+        ''', (usuario['id'], int(igreja_id), perfil), commit=True)
+        flash(f'"{usuario["nome"]}" vinculado com sucesso!', 'sucesso')
+
+    return redirect(url_for('usuarios'))
     
 # ============================================================
 # ROTA: /minha-conta  (GET e POST)
