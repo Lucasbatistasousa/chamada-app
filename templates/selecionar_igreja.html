@@ -41,4 +41,15 @@
 
   </div>
 </div>
+
+{% block scripts %}
+<script>
+  // Remove o listener de desabilitar botões nesta página
+  // pois cada botão representa uma igreja diferente
+  document.querySelectorAll('form').forEach(function(form) {
+    form.replaceWith(form.cloneNode(true));
+  });
+</script>
+{% endblock %}
+
 {% endblock %}
