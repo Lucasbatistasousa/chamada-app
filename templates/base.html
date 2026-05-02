@@ -62,30 +62,35 @@
           <a href="/turmas" class="hover:text-verde-claro transition">Turmas</a>
 
           {% if current_user.pode_gerenciar_usuarios() %}
-          <a href="/usuarios" class="hover:text-verde-claro transition">Usuários</a>
+            <a href="/usuarios" class="hover:text-verde-claro transition">Usuários</a>
           {% endif %}
 
           {% if current_user.e_superadmin() %}
             <a href="/igrejas" class="hover:text-verde-claro transition">Igrejas</a>
           {% endif %}
 
-          {% if current_user.is_authenticated and not current_user.e_superadmin() %}
+          {% if not current_user.e_superadmin() %}
             <a href="/minhas-igrejas" class="hover:text-verde-claro transition">
               Trocar Igreja
             </a>
           {% endif %}
-          
-          <span class="text-xs bg-marrom px-2 py-0.5 rounded-full ml-1">
-            {% if current_user.e_superadmin() %}
-              superadmin
-            {% else %}
-              {{ current_user.perfil_atual }}
-            {% endif %}
-          </span>
+
+          <!-- Nome + badge do perfil -->
+          <div class="flex items-center gap-2">
+            <span class="text-white text-sm">{{ current_user.nome }}</span>
+            <span class="text-xs bg-marrom px-2 py-0.5 rounded-full text-white">
+              {% if current_user.e_superadmin() %}
+                superadmin
+              {% else %}
+                {{ current_user.perfil_atual }}
+              {% endif %}
+            </span>
+          </div>
+
           <a href="/minha-conta" class="hover:text-verde-claro transition">
             Minha Conta
           </a>
-          <a
+          
             href="/logout"
             class="bg-white text-verde-escuro px-3 py-1 rounded-lg hover:bg-gray-100 transition font-semibold text-sm"
           >
@@ -93,7 +98,6 @@
           </a>
         </div>
         {% endif %}
-      </div>
 
       <!-- Menu mobile — escondido por padrão -->
       {% if current_user.is_authenticated %}
@@ -102,21 +106,14 @@
         class="hidden sm:hidden mt-3 flex flex-col gap-2 text-sm font-medium border-t border-green-700 pt-3"
       >
         <a href="/" class="hover:text-verde-claro transition py-1">Início</a>
-        <a href="/turmas" class="hover:text-verde-claro transition py-1"
-          >Turmas</a
-        >
+        <a href="/turmas" class="hover:text-verde-claro transition py-1">Turmas</a>
+
         {% if current_user.pode_gerenciar_usuarios() %}
-        <a href="/usuarios" class="hover:text-verde-claro transition py-1">
-          Usuários
-        </a>
+          <a href="/usuarios" class="hover:text-verde-claro transition py-1">Usuários</a>
         {% endif %}
 
         {% if current_user.e_superadmin() %}
           <a href="/igrejas" class="hover:text-verde-claro transition py-1">Igrejas</a>
-        {% endif %}
-
-        {% if current_user.pode_gerenciar_usuarios() %}
-          <a href="/usuarios" class="hover:text-verde-claro transition py-1">Usuários</a>
         {% endif %}
 
         {% if not current_user.e_superadmin() %}
@@ -125,7 +122,7 @@
           </a>
         {% endif %}
 
-        <div class="text-gray-300 py-1">
+        <div class="text-white py-1">
           {{ current_user.nome }}
           <span class="text-xs bg-marrom px-2 py-0.5 rounded-full ml-1">
             {% if current_user.e_superadmin() %}
@@ -135,11 +132,11 @@
             {% endif %}
           </span>
         </div>
-        
+
         <a href="/minha-conta" class="hover:text-verde-claro transition py-1">
           Minha Conta
         </a>
-        <a
+        
           href="/logout"
           class="bg-white text-verde-escuro px-3 py-1 rounded-lg hover:bg-gray-100 transition font-semibold w-fit"
         >

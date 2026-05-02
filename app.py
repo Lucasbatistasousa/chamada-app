@@ -264,25 +264,7 @@ def login():
 @login_required
 def selecionar_igreja():
 
-    # Superadmin não precisa selecionar igreja
     if current_user.e_superadmin():
-        return redirect(url_for('index'))
-
-    if request.method == 'POST':
-        igreja_id = int(request.form['igreja_id'])
-
-        # Verifica se o usuário realmente pertence a essa igreja
-        vinculo = q('''
-            SELECT * FROM usuario_igrejas
-            WHERE usuario_id = %s AND igreja_id = %s AND ativo = 1
-        ''', (current_user.id, igreja_id), one=True)
-
-        if not vinculo:
-            flash('Você não tem acesso a essa igreja.', 'erro')
-            return redirect(url_for('selecionar_igreja'))
-
-        # Salva a igreja selecionada na sessão
-        session['igreja_atual'] = igreja_id
         return redirect(url_for('index'))
 
     # Busca as igrejas do usuário
@@ -296,7 +278,29 @@ def selecionar_igreja():
 
     # Se só tem uma igreja seleciona automaticamente
     if len(igrejas) == 1:
-        session['igreja_atual'] = igrejas[0]['igreja_id']
+        igreja_id = igrejas[0]['igreja_id']
+        session['igreja_atual'] = igreja_id
+        # Recarrega o usuário com o perfil correto
+        usuario_atualizado = carregar_usuario(current_user.id, igreja_id)
+        login_user(usuario_atualizado)
+        return redirect(url_for('index'))
+
+    if request.method == 'POST':
+        igreja_id = int(request.form['igreja_id'])
+
+        vinculo = q('''
+            SELECT * FROM usuario_igrejas
+            WHERE usuario_id = %s AND igreja_id = %s AND ativo = 1
+        ''', (current_user.id, igreja_id), one=True)
+
+        if not vinculo:
+            flash('Você não tem acesso a essa igreja.', 'erro')
+            return redirect(url_for('selecionar_igreja'))
+
+        session['igreja_atual'] = igreja_id
+        # Recarrega o usuário com o perfil correto
+        usuario_atualizado = carregar_usuario(current_user.id, igreja_id)
+        login_user(usuario_atualizado)
         return redirect(url_for('index'))
 
     return render_template('selecionar_igreja.html', igrejas=igrejas)
