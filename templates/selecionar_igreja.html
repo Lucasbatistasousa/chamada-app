@@ -15,23 +15,24 @@
       </p>
     </div>
 
-    <form method="POST" action="/selecionar-igreja" class="flex flex-col gap-3">
+    <div class="flex flex-col gap-3">
       {% for igreja in igrejas %}
-        <button
-          type="submit"
-          name="igreja_id"
-          value="{{ igreja.igreja_id }}"
-          class="w-full text-left px-5 py-4 border-2 border-gray-200
-                 rounded-xl hover:border-verde-claro hover:bg-gray-50
-                 transition flex items-center justify-between">
-          <div>
-            <div class="font-semibold text-gray-700">{{ igreja.igreja_nome }}</div>
-            <div class="text-sm text-gray-400 mt-0.5">{{ igreja.perfil }}</div>
-          </div>
-          <span class="text-verde-escuro">→</span>
-        </button>
+        <form method="POST" action="/selecionar-igreja">
+          <input type="hidden" name="igreja_id" value="{{ igreja.igreja_id }}">
+          <button
+            type="submit"
+            class="w-full text-left px-5 py-4 border-2 border-gray-200
+                   rounded-xl hover:border-verde-claro hover:bg-gray-50
+                   transition flex items-center justify-between">
+            <div>
+              <div class="font-semibold text-gray-700">{{ igreja.igreja_nome }}</div>
+              <div class="text-sm text-gray-400 mt-0.5">{{ igreja.perfil }}</div>
+            </div>
+            <span class="text-verde-escuro">→</span>
+          </button>
+        </form>
       {% endfor %}
-    </form>
+    </div>
 
     <div class="mt-6 text-center">
       <a href="/logout" class="text-sm text-gray-400 hover:text-gray-600 transition">
@@ -41,15 +42,4 @@
 
   </div>
 </div>
-
-{% block scripts %}
-<script>
-  // Remove o listener de desabilitar botões nesta página
-  // pois cada botão representa uma igreja diferente
-  document.querySelectorAll('form').forEach(function(form) {
-    form.replaceWith(form.cloneNode(true));
-  });
-</script>
-{% endblock %}
-
 {% endblock %}
