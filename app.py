@@ -271,11 +271,8 @@ def selecionar_igreja():
         return redirect(url_for('index'))
 
     if request.method == 'POST':
-        # Debug — vamos ver o que está chegando
-        print('FORM DATA:', dict(request.form))
         
         igreja_id = request.form.get('igreja_id')
-        print('IGREJA ID:', igreja_id)
 
         if not igreja_id:
             flash('Selecione uma igreja.', 'erro')
