@@ -270,26 +270,18 @@ def selecionar_igreja():
     if current_user.e_superadmin():
         return redirect(url_for('index'))
 
-    # Busca as igrejas do usuário
-    igrejas = q('''
-        SELECT ui.*, i.nome AS igreja_nome
-        FROM usuario_igrejas ui
-        JOIN igrejas i ON i.id = ui.igreja_id
-        WHERE ui.usuario_id = %s AND ui.ativo = 1
-        ORDER BY i.nome
-    ''', (current_user.id,))
-
-    # Se só tem uma igreja seleciona automaticamente
-    if len(igrejas) == 1:
-        igreja_id = igrejas[0]['igreja_id']
-        session['igreja_atual'] = igreja_id
-        # Recarrega o usuário com o perfil correto
-        usuario_atualizado = carregar_usuario(current_user.id, igreja_id)
-        login_user(usuario_atualizado)
-        return redirect(url_for('index'))
-
     if request.method == 'POST':
-        igreja_id = int(request.form['igreja_id'])
+        # Debug — vamos ver o que está chegando
+        print('FORM DATA:', dict(request.form))
+        
+        igreja_id = request.form.get('igreja_id')
+        print('IGREJA ID:', igreja_id)
+
+        if not igreja_id:
+            flash('Selecione uma igreja.', 'erro')
+            return redirect(url_for('selecionar_igreja'))
+
+        igreja_id = int(igreja_id)
 
         vinculo = q('''
             SELECT * FROM usuario_igrejas
@@ -301,7 +293,21 @@ def selecionar_igreja():
             return redirect(url_for('selecionar_igreja'))
 
         session['igreja_atual'] = igreja_id
-        # Recarrega o usuário com o perfil correto
+        usuario_atualizado = carregar_usuario(current_user.id, igreja_id)
+        login_user(usuario_atualizado)
+        return redirect(url_for('index'))
+
+    igrejas = q('''
+        SELECT ui.*, i.nome AS igreja_nome
+        FROM usuario_igrejas ui
+        JOIN igrejas i ON i.id = ui.igreja_id
+        WHERE ui.usuario_id = %s AND ui.ativo = 1
+        ORDER BY i.nome
+    ''', (current_user.id,))
+
+    if len(igrejas) == 1:
+        igreja_id = igrejas[0]['igreja_id']
+        session['igreja_atual'] = igreja_id
         usuario_atualizado = carregar_usuario(current_user.id, igreja_id)
         login_user(usuario_atualizado)
         return redirect(url_for('index'))
