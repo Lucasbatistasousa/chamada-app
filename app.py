@@ -103,9 +103,12 @@ def igrejas():
         return redirect(url_for('index'))
 
     lista_igrejas = q('''
-        SELECT i.*, u.nome AS diretor_nome
+        SELECT i.*,
+               STRING_AGG(u.nome, ', ') FILTER (WHERE ui.perfil = 'diretor') AS diretor_nome
         FROM igrejas i
-        LEFT JOIN usuarios u ON u.igreja_id = i.id AND u.perfil = 'diretor'
+        LEFT JOIN usuario_igrejas ui ON ui.igreja_id = i.id AND ui.perfil = 'diretor' AND ui.ativo = 1
+        LEFT JOIN usuarios u ON u.id = ui.usuario_id
+        GROUP BY i.id
         ORDER BY i.nome
     ''')
 
