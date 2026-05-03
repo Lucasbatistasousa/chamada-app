@@ -663,7 +663,7 @@ def professores_turma(turma_id):
         return redirect(url_for('turmas'))
 
     # Verifica se a turma pertence à igreja do usuário
-    if not current_user.e_superadmin() and turma['igreja_id'] != current_user.igreja_id:
+    if not current_user.e_superadmin() and turma['igreja_id'] != current_user.igreja_atual:
         flash('Você não tem acesso a essa turma.', 'erro')
         return redirect(url_for('turmas'))
 
@@ -800,7 +800,7 @@ def turmas():
             LEFT JOIN igrejas i ON i.id = t.igreja_id
             WHERE t.igreja_id = %s
             ORDER BY t.nome
-        ''', (current_user.igreja_id,))
+        ''', (current_user.igreja_atual,))
     
      # Busca igrejas para o superadmin selecionar no modal
     todas_igrejas = q('SELECT * FROM igrejas ORDER BY nome') if current_user.e_superadmin() else []
@@ -832,7 +832,7 @@ def criar_turma():
             flash('Selecione uma igreja para a turma.', 'erro')
             return redirect(url_for('turmas'))
     else:
-        igreja_id = current_user.igreja_id
+        igreja_id = current_user.igreja_atual
 
     try:
         q(
@@ -863,7 +863,7 @@ def deletar_turma(turma_id):
     # Verifica se a turma pertence à igreja do usuário
     turma = q('SELECT * FROM turmas WHERE id = %s', (turma_id,), one=True)
 
-    if not current_user.e_superadmin() and turma['igreja_id'] != current_user.igreja_id:
+    if not current_user.e_superadmin() and turma['igreja_id'] != current_user.igreja_atual:
         flash('Você não tem permissão para deletar essa turma.', 'erro')
         return redirect(url_for('turmas'))
 
@@ -895,7 +895,7 @@ def alunos(turma_id):
             if not acesso:
                 flash('Você não tem acesso a essa turma.', 'erro')
                 return redirect(url_for('turmas'))
-        elif turma['igreja_id'] != current_user.igreja_id:
+        elif turma['igreja_id'] != current_user.igreja_atual:
             flash('Você não tem acesso a essa turma.', 'erro')
             return redirect(url_for('turmas'))
 
@@ -919,7 +919,7 @@ def adicionar_aluno(turma_id):
 
     turma = q('SELECT * FROM turmas WHERE id = %s', (turma_id,), one=True)
 
-    if not current_user.e_superadmin() and turma['igreja_id'] != current_user.igreja_id:
+    if not current_user.e_superadmin() and turma['igreja_id'] != current_user.igreja_atual:
         flash('Você não tem acesso a essa turma.', 'erro')
         return redirect(url_for('turmas'))
 
@@ -953,7 +953,7 @@ def deletar_aluno(aluno_id):
         flash('Você não tem permissão para fazer isso.', 'erro')
         return redirect(url_for('alunos', turma_id=aluno['turma_id']))
 
-    if not current_user.e_superadmin() and turma['igreja_id'] != current_user.igreja_id:
+    if not current_user.e_superadmin() and turma['igreja_id'] != current_user.igreja_atual:
         flash('Você não tem acesso a essa turma.', 'erro')
         return redirect(url_for('turmas'))
 
