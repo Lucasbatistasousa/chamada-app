@@ -47,108 +47,96 @@
   <body class="bg-gray-50 text-gray-800 min-h-screen">
     <!-- ── NAVBAR ── -->
     <nav class="bg-verde-escuro text-white px-4 py-3 shadow-md">
+
       <div class="flex items-center justify-between">
+
         <span class="text-lg font-bold tracking-wide">
           🏫 Gestão de Turmas
         </span>
 
         <!-- Botão hamburguer — só aparece no mobile -->
         {% if current_user.is_authenticated %}
-        <button
-          onclick="
-            document.getElementById('menu-mobile').classList.toggle('hidden')
-          "
-          class="sm:hidden text-white focus:outline-none"
-        >
-          ☰
-        </button>
+          <button
+            onclick="toggleMenu()"
+            id="btn-menu"
+            class="sm:hidden flex flex-col gap-1.5 p-2 focus:outline-none">
+            <span id="icon-menu" class="text-white text-2xl leading-none">☰</span>
+          </button>
         {% endif %}
 
         <!-- Links — só aparecem em telas maiores -->
         {% if current_user.is_authenticated %}
-        <div class="hidden sm:flex items-center gap-6 text-sm font-medium">
-          <a href="/" class="hover:text-verde-claro transition">Início</a>
+          <div class="hidden sm:flex items-center gap-6 text-sm font-medium">
+            <a href="/" class="hover:text-verde-claro transition">Início</a>
+            <a href="/turmas" class="hover:text-verde-claro transition">Turmas</a>
 
-          <a href="/turmas" class="hover:text-verde-claro transition">Turmas</a>
+            {% if current_user.pode_gerenciar_usuarios() %}
+              <a href="/usuarios" class="hover:text-verde-claro transition">Usuários</a>
+            {% endif %}
+
+            {% if current_user.e_superadmin() %}
+              <a href="/igrejas" class="hover:text-verde-claro transition">Igrejas</a>
+            {% endif %}
+
+            {% if not current_user.e_superadmin() %}
+              <a href="/minhas-igrejas" class="hover:text-verde-claro transition">Trocar Igreja</a>
+            {% endif %}
+
+            <div class="flex items-center gap-2">
+              <span class="text-white text-sm">{{ current_user.nome }}</span>
+              <span class="text-xs bg-marrom px-2 py-0.5 rounded-full text-white">
+                {% if current_user.e_superadmin() %}superadmin
+                {% else %}{{ current_user.perfil_atual }}{% endif %}
+              </span>
+            </div>
+
+            <a href="/minha-conta" class="hover:text-verde-claro transition">Minha Conta</a>
+            <a href="/logout"
+               class="bg-white text-verde-escuro px-3 py-1 rounded-lg
+                      hover:bg-gray-100 transition font-semibold text-sm">
+              Sair
+            </a>
+          </div>
+        {% endif %}
+
+      </div>
+
+      <!-- Menu mobile — abre abaixo do título -->
+      {% if current_user.is_authenticated %}
+        <div id="menu-mobile" class="hidden sm:hidden mt-3 border-t border-green-700 pt-3 flex-col gap-1">
+          <a href="/" class="block py-2 px-2 rounded-lg hover:bg-green-800 hover:text-verde-claro transition">Início</a>
+          <a href="/turmas" class="block py-2 px-2 rounded-lg hover:bg-green-800 hover:text-verde-claro transition">Turmas</a>
 
           {% if current_user.pode_gerenciar_usuarios() %}
-            <a href="/usuarios" class="hover:text-verde-claro transition">Usuários</a>
+            <a href="/usuarios" class="block py-2 px-2 rounded-lg hover:bg-green-800 hover:text-verde-claro transition">Usuários</a>
           {% endif %}
 
           {% if current_user.e_superadmin() %}
-            <a href="/igrejas" class="hover:text-verde-claro transition">Igrejas</a>
+            <a href="/igrejas" class="block py-2 px-2 rounded-lg hover:bg-green-800 hover:text-verde-claro transition">Igrejas</a>
           {% endif %}
 
           {% if not current_user.e_superadmin() %}
-            <a href="/minhas-igrejas" class="hover:text-verde-claro transition">
-              Trocar Igreja
-            </a>
+            <a href="/minhas-igrejas" class="block py-2 px-2 rounded-lg hover:bg-green-800 hover:text-verde-claro transition">Trocar Igreja</a>
           {% endif %}
 
-          <!-- Nome + badge do perfil -->
-          <div class="flex items-center gap-2">
+          <a href="/minha-conta" class="block py-2 px-2 rounded-lg hover:bg-green-800 hover:text-verde-claro transition">Minha Conta</a>
+
+          <div class="flex items-center gap-2 py-2 px-2 border-t border-green-700 mt-1">
             <span class="text-white text-sm">{{ current_user.nome }}</span>
             <span class="text-xs bg-marrom px-2 py-0.5 rounded-full text-white">
-              {% if current_user.e_superadmin() %}
-                superadmin
-              {% else %}
-                {{ current_user.perfil_atual }}
-              {% endif %}
+              {% if current_user.e_superadmin() %}superadmin
+              {% else %}{{ current_user.perfil_atual }}{% endif %}
             </span>
           </div>
 
-          <a href="/minha-conta" class="hover:text-verde-claro transition">
-            Minha Conta
-          </a>
-          
           <a href="/logout"
-            class="bg-white text-verde-escuro px-3 py-1 rounded-lg hover:bg-gray-100 transition font-semibold text-sm">
+             class="block text-center bg-white text-verde-escuro px-3 py-2
+                    rounded-lg hover:bg-gray-100 transition font-semibold mt-1">
             Sair
           </a>
         </div>
-        {% endif %}
-
-      <!-- Menu mobile — escondido por padrão -->
-      {% if current_user.is_authenticated %}
-      <div
-        id="menu-mobile"
-        class="hidden sm:hidden mt-3 flex-col gap-1 text-sm font-medium border-t border-green-700 pt-3"
-      >
-        <a href="/" class="block hover:text-verde-claro transition py-2 px-2 rounded-lg hover:bg-green-800">Início</a>
-        <a href="/turmas" class="block hover:text-verde-claro transition py-2 px-2 rounded-lg hover:bg-green-800">Turmas</a>
-
-        {% if current_user.pode_gerenciar_usuarios() %}
-          <a href="/usuarios" class="block hover:text-verde-claro transition py-2 px-2 rounded-lg hover:bg-green-800">Usuários</a>
-        {% endif %}
-
-        {% if current_user.e_superadmin() %}
-          <a href="/igrejas" class="block hover:text-verde-claro transition py-2 px-2 rounded-lg hover:bg-green-800">Igrejas</a>
-        {% endif %}
-
-        {% if not current_user.e_superadmin() %}
-          <a href="/minhas-igrejas" class="block hover:text-verde-claro transition py-2 px-2 rounded-lg hover:bg-green-800">Trocar Igreja</a>
-        {% endif %}
-
-        <a href="/minha-conta" class="block hover:text-verde-claro transition py-2 px-2 rounded-lg hover:bg-green-800">Minha Conta</a>
-
-        <div class="flex items-center gap-2 py-2 px-2 border-t border-green-700 mt-1">
-          <span class="text-white text-sm">{{ current_user.nome }}</span>
-          <span class="text-xs bg-marrom px-2 py-0.5 rounded-full text-white">
-            {% if current_user.e_superadmin() %}
-              superadmin
-            {% else %}
-              {{ current_user.perfil_atual }}
-            {% endif %}
-          </span>
-        </div>
-
-        <a href="/logout"
-           class="block bg-white text-verde-escuro px-3 py-2 rounded-lg
-                  hover:bg-gray-100 transition font-semibold text-center mt-1">
-          Sair
-        </a>
-      </div>
       {% endif %}
+
     </nav>
 
     <!-- ── MENSAGENS FLASH ── -->
@@ -186,5 +174,24 @@
         });
       }
     </script>
+
+    <script>
+      function toggleMenu() {
+        const menu   = document.getElementById('menu-mobile');
+        const icon   = document.getElementById('icon-menu');
+        const aberto = !menu.classList.contains('hidden');
+
+        if (aberto) {
+          menu.classList.add('hidden');
+          menu.classList.remove('flex');
+          icon.textContent = '☰';
+        } else {
+          menu.classList.remove('hidden');
+          menu.classList.add('flex');
+          icon.textContent = '✕';
+        }
+      }
+    </script>
+
   </body>
 </html>
