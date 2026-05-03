@@ -34,6 +34,15 @@
         });
       });
     </script>
+
+    <!-- PWA -->
+    <link rel="manifest" href="/static/manifest.json">
+    <meta name="theme-color" content="#2D6A2D">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="Gestão de Turmas">
+    <link rel="apple-touch-icon" href="/static/icons/icon-192.png">
+
   </head>
   <body class="bg-gray-50 text-gray-800 min-h-screen">
     <!-- ── NAVBAR ── -->
@@ -166,5 +175,20 @@
     </main>
 
   {% block scripts %}{% endblock %}
+
+  <!-- Registra o Service Worker -->
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', function() {
+          navigator.serviceWorker.register('/static/service-worker.js')
+            .then(function(reg) {
+              console.log('Service Worker registrado:', reg.scope);
+            })
+            .catch(function(err) {
+              console.log('Erro ao registrar Service Worker:', err);
+            });
+        });
+      }
+    </script>
   </body>
 </html>

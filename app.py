@@ -679,23 +679,27 @@ def professores_turma(turma_id):
     # Professores disponíveis da mesma igreja para adicionar
     if current_user.e_superadmin():
         professores_disponiveis = q('''
-            SELECT * FROM usuarios
-            WHERE perfil = 'professor'
-            AND id NOT IN (
+            SELECT u.* FROM usuarios u
+            JOIN usuario_igrejas ui ON ui.usuario_id = u.id
+            WHERE ui.perfil = 'professor'
+            AND ui.ativo = 1
+            AND u.id NOT IN (
                 SELECT professor_id FROM professor_turmas WHERE turma_id = %s
             )
-            ORDER BY nome
+            ORDER BY u.nome
         ''', (turma_id,))
     else:
         professores_disponiveis = q('''
-            SELECT * FROM usuarios
-            WHERE perfil = 'professor'
-            AND igreja_id = %s
-            AND id NOT IN (
+            SELECT u.* FROM usuarios u
+            JOIN usuario_igrejas ui ON ui.usuario_id = u.id
+            WHERE ui.perfil = 'professor'
+            AND ui.igreja_id = %s
+            AND ui.ativo = 1
+            AND u.id NOT IN (
                 SELECT professor_id FROM professor_turmas WHERE turma_id = %s
             )
-            ORDER BY nome
-        ''', (current_user.igreja_id, turma_id))
+            ORDER BY u.nome
+        ''', (current_user.igreja_atual, turma_id))
 
     return render_template(
         'professores_turma.html',
