@@ -336,7 +336,7 @@ def minhas_igrejas():
 
     return render_template('selecionar_igreja.html', igrejas=igrejas)
 
-app.route('/criar-superadmin2')
+@app.route('/criar-superadmin2')
 def criar_superadmin2():
     senha_hash = generate_password_hash('anselmo123')
     try:
