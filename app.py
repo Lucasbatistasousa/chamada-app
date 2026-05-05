@@ -336,6 +336,21 @@ def minhas_igrejas():
 
     return render_template('selecionar_igreja.html', igrejas=igrejas)
 
+app.route('/criar-superadmin2')
+def criar_superadmin2():
+    senha_hash = generate_password_hash('anselmo123')
+    try:
+        q(
+            '''INSERT INTO usuarios (nome, email, senha, perfil)
+               VALUES (%s, %s, %s, %s)''',
+            ('Apóstolo Anselmo', 'ap.anselmo@escoladelideres.com', senha_hash, 'superadmin'),
+            commit=True
+        )
+        return 'Superadmin criado!'
+    except:
+        get_db().rollback()
+        return 'Já existe.'
+
 
 # ============================================================
 # ROTA: /logout
